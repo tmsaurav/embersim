@@ -1,0 +1,687 @@
+#include "PPICLF_USER.h"
+#include "PPICLF_STD.h"
+c-----------------------------------------------------------------------
+c	TURBULENT CHANNEL FLOW (RIGID LID ASSUMPTION)     
+c-----------------------------------------------------------------------
+#define NUM_X 32			/* Number of elements X (streamwise)*/
+#define NUM_Y 16				/* Number of elements Y (spanwise)  */
+#define NUM_Z 16				/* Number of elements Z	(vertical)	*/
+
+#define XLEN 400				/* Length in streamwise direction	*/
+#define YLEN 200				/* Length in spanwise direction	*/
+#define ZLEN 200				/* Length in the vertical direction */
+
+#define INTP_NMAX 800			/* Number of points in interpolation */
+#define XCINT 1				/* x coordinate of 1D line           */
+#define YCINT 1				/* y coordinate of 1D line		 */
+
+#define BETAM 1.5				/*Grid stretching parameter          */
+#define tSTATSTART uparam(1)			/* Statistics start averaging        */
+#define tSTATFREQ uparam(2)			/* Statistics averaging start time   */
+
+#define NUM_PAR 12			/*Number of statistical parameters   */
+c-----------------------------------------------------------------------
+      subroutine uservp (ix,iy,iz,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e
+
+      utrans = 1.
+      udiff  = param(2)
+
+      if (ifield .eq. 2) then
+         e = gllel(ieg)
+         udiff = param(8)
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf(ix,iy,iz,eg) ! set acceleration term
+c
+c     Note: this is an acceleration term, NOT a force!
+c     Thus, ffx will subsequently be multiplied by rho(x,t).
+c
+c     implicit none
+
+      integer ix,iy,iz,eg
+
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      ffx = 0.0
+      ffy = 0.0
+      ffz = 0.0
+
+      dpdx = 0.02 
+ 
+      zh_t = uparam(5)
+      zh_l = uparam(4)
+
+      uMag = sqrt(ux**2+uy**2+uz**2)
+
+c     nek multiplies by rho after this fn call
+
+      if(((z/uparam(3) .lt. zh_t) .and. (z/uparam(3) .gt. zh_l)) .and.
+     + (x .lt. 200)) then
+        ffx=-uparam(6)*uparam(7)*exp(-((z/uparam(3)-uparam(8))**2)
+     +/uparam(9)**2)*ux*uMag
+        ffy=-uparam(6)*uparam(7)*exp(-((z/uparam(3)-uparam(8))**2)
+     +/uparam(9)**2)*uy*uMag
+        ffz=-uparam(6)*uparam(7)*exp(-((z/uparam(3)-uparam(8))**2)
+     +/uparam(9)**2)*uz*uMag
+      endif
+
+      ffx = ffx + dpdx
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq(ix,iy,iz,eg) ! set source term
+
+c     implicit none
+
+      integer ix,iy,iz,eg
+
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      qvol   = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc(ix,iy,iz,iside,eg) ! set up boundary conditions
+c
+c     NOTE ::: This subroutine MAY NOT be called by every process
+c
+c     implicit none
+
+      integer ix,iy,iz,iside,eg
+
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+
+      ux   = 0.0
+      uy   = 0.0
+      uz   = 0.0
+      temp = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric(ix,iy,iz,eg) ! set up initial conditions
+
+c     implicit none
+
+      integer ix,iy,iz,eg
+  
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      real htwo, kx, ky
+
+      htwo = 2*uparam(3)
+      
+      eps = 2e-2
+      kx = 40
+      ky = 20
+      
+      alpha = kx * 300/XLEN
+      beta  = ky * 200/YLEN
+
+      ux = 18*log(1+z)/log(1+htwo)
+c      ux = 4.0
+      uy = 0.0
+      uz = 0.0
+
+      ux = ux + eps*beta*sin(alpha*x)*cos(beta*y)
+      uy =    -eps*alpha*cos(alpha*x)*sin(beta*y)
+      uz =      eps*beta*sin(alpha*x)*cos(beta*y)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userchk()
+
+	include 'SIZE'
+	include 'TOTAL'
+	include 'ARRAY_DEF'
+
+      real rphip(PPICLF_LEX,PPICLF_LEY,PPICLF_LEZ,lelt)
+
+c Define the call for averaging
+      integer icalld
+      save    icalld
+      data    icalld /0/
+
+c     Define the averaging parameters
+      real atime,timel
+      save atime,timel
+
+c     Define the data dumping parameters
+      integer ntdump
+      save    ntdump
+
+c     Define the interpolation stuff
+      real    rwk(INTP_NMAX,ldim+1) ! r, s, t, dist2
+      integer iwk(INTP_NMAX,3)      ! code, proc, el 
+      save    rwk, iwk
+
+      integer nint, intp_h
+      save    nint, intp_h
+
+      logical iffpts, dirExists
+      save iffpts, dirExists
+
+c     Define the working array based on the interpolation point number
+      real xint(INTP_NMAX),yint(INTP_NMAX),zint(INTP_NMAX)
+      save xint, yint, zint
+	common /igs_Data/ igs_x, igs_y
+
+c     Define the parameters and the array sizes
+      parameter(nstat=NUM_PAR)
+      real ravg(lx1*ly1*lz1*lelt,nstat)
+      real stat(lx1*ly1*lz1*lelt,nstat)
+      real stat_z(INTP_NMAX*nstat)
+      save ravg, stat, stat_z							!ravg, stat, stat_z
+
+c	Define the work array [This array is recycled to avoid memory issues]
+	real wo1(lx1*ly1*lz1*lelt)
+
+c     Define the working array and logical parameter to save
+      logical ifverbose
+
+c	Placeholder for kinematic viscosity
+	real kinematicViscosity
+
+c	Define the length H (Channel half height)
+	H = ZLEN
+
+c     Define the number of points
+      n     = nx1*ny1*nz1*nelv
+
+c     Define the number of elements in each direction
+      nelx  = NUM_X
+      nely  = NUM_Y
+      nelz  = NUM_Z
+
+c     PPICLF stuff
+
+      do ie=1,nelt
+      do iz=1,PPICLF_LEZ
+      do iy=1,PPICLF_LEY
+      do ix=1,PPICLF_LEX
+         call ppiclf_solve_GetProFldIJKEF(ix,iy,iz,ie
+     >                              ,PPICLF_P_JPHIP,rphip(ix,iy,iz,ie))
+      enddo
+      enddo
+      enddo
+      enddo
+
+	 ! Interpolate fields to particle positions
+      call ppiclf_solve_InterpFieldUser(PPICLF_R_JPHIP
+     >                          ,rphip(1,1,1,1))
+      call ppiclf_solve_InterpFieldUser(PPICLF_R_JUX
+     >                          ,vx(1,1,1,1))
+      call ppiclf_solve_InterpFieldUser(PPICLF_R_JUY
+     >                          ,vy(1,1,1,1))
+      call ppiclf_solve_InterpFieldUser(PPICLF_R_JUZ
+     >                          ,vz(1,1,1,1))
+
+      ! Integrate particles
+      call ppiclf_solve_IntegrateParticle(istep ,
+     >                                    iostep,
+     >                                    dt    ,
+     >                                    time  )
+
+      iostep = 50
+
+      if (mod(istep,iostep) .eq. 0)
+     >   call outpost2(rphip
+     >                ,rphip
+     >                ,rphip
+     >                ,rphip
+     >                ,rphip,1,'ptw')
+
+c     Define the kinematic viscosity
+	kinematicViscosity = param(2)/param(1)	!param(2) = mu and param(1) = rho
+	
+c     Map the fields at time step zero
+c      if(istep.eq.0) then
+c            call gfldr('reschannel0.f00001')
+c      endif
+
+c     Computing the mean velocities
+
+      ubar = glsc2(vx,bm1,n)/volvm1
+      e2   = glsc3(vy,bm1,vy,n)+glsc3(vz,bm1,vz,n)
+      e2   = e2/volvm1
+
+c     Print the values at each time step
+      if(nid.eq.0) write(6,*) 'Time:',time,'Ux:',ubar,'Uy+Uz:',e2
+      
+      if (time.lt.tSTATSTART) return
+
+c
+c     What follows computes some statistics ...
+c
+
+
+c     Write the arrays to a file
+c     If its the first time step write the xyz points in a seperate array      
+      if(callxyz.eq.0) then
+
+c     Create a directory to store the data
+c            inquire( directory=stats, exist=dirExists)		!Works with ifort
+             inquire(file=trim("stats")//'/.', exist=dirExists)	!Works for gfortran
+
+            if(istep .eq. 0 .and. dirExists) then
+                  if(nid.eq.0) then
+                        print *, "Directory stats already exists!"
+                  endif
+            else
+                  call system('mkdir -p stats/')
+            endif
+            
+            fileInd = 1                   !Initialise the fileInd integer
+
+c     Set callxyz to nonzero
+      callxyz = 1
+
+      endif
+
+
+      if(icalld.eq.0) then
+        if(nid.eq.0) write(6,*) 'Start collecting statistics ...'
+
+        nxm = 1 ! mesh is linear
+        call interp_setup(intp_h,0.0,nxm,nelt)
+        nint = 0
+        if (nid.eq.0) then
+          nint = INTP_NMAX
+          call cfill(xint,XCINT,size(xint))
+          call cfill(yint,YCINT,size(yint))
+          do i = 1,INTP_NMAX 
+             zi = ((i-1.)/(INTP_NMAX-1))
+		zint(i) = ZLEN*zi
+          enddo
+        endif
+
+
+        iffpts = .true.							! dummy call to find points
+        call interp_nfld(stat_z,ravg,1,xint,yint,zint,nint,
+     $                        iwk,rwk,INTP_NMAX,iffpts,intp_h)
+
+        iffpts = .false.
+c		This is the only case that works to give sensible profiles
+		call gtpp_gs_setup(igs_y,nelx*nelz,nely,1   ,2) ! y-avg
+		call gtpp_gs_setup(igs_y,nelx     ,nely,nelz,1) ! x-avg
+
+
+        call rzero(ravg,size(ravg))
+        atime     = 0
+        timel     = time
+        ntdump    = int(time/tSTATFREQ)
+
+        icalld = 1
+      endif
+
+
+c     Set the time averaging parameters
+      dtime = time - timel
+      atime = atime + dtime
+
+c     Averaging over time
+
+      if (atime.ne.0. .and. dtime.ne.0.) then
+        beta      = dtime / atime
+        alpha     = 1. - beta
+
+c-----------------------------------------------------------------------------------------------
+c	Now that we have the gtpp_gs_setup complete, we can first compute uavg and u' fields
+	call	computeUFluc()
+
+c	Compute the gradient quantities
+c	The subscript of notation of p is to denote that this is used for computing TKE production terms	
+
+      call gradm1(dudxp,dudyp,dudzp,ua)			!This is the capital dU_1/dx_j MEAN VELOCITY GRADIENT
+
+c	Since we have access to u' after computeUFluc(), we can compute the gradients
+
+	!The ones below are all du'_i/dx_j (fluctuation)
+
+      call gradm1(dudx,dudy,dudz,uf)                  !u' = u(t) - u_avg(t)
+      call gradm1(dvdx,dvdy,dvdz,vy)                  !v'=v
+      call gradm1(dwdx,dwdy,dwdz,vz)                  !w'=w
+
+c	Compute the dissipation terms
+	dudz2 = dudz*dudz						!dudz^2
+	dvdz2 = dvdz*dvdz						!dvdz^2
+	dwdz2 = dwdz*dwdz						!dwdz^2	
+
+
+c-----------------------------------------------------------------------------------------------
+
+        ifverbose = .false.
+c		uBar (STREAMWISE)
+        call avg1(ravg(1,1),vx   ,alpha,beta,n,'uavg',ifverbose)				!u bar
+
+c		UPRIME U'	
+        call avg1(ravg(1,2),uf,alpha,beta,n,'upavg',ifverbose)				!u'
+        call avg1(ravg(1,3),vy   ,alpha,beta,n,'vpavg',ifverbose)				!v'=v because vbar=0
+        call avg1(ravg(1,4),vz   ,alpha,beta,n,'upavg',ifverbose)				!w'=w because wbar=0
+
+c		PRIMES u'_i*u'_j
+        call avg2(ravg(1,5),uf,alpha,beta,n,'upupavg',ifverbose)				!u'u'
+        call avg2(ravg(1,6),vy   ,alpha,beta,n,'vpvpavg',ifverbose)			!v'v'
+        call avg2(ravg(1,7),vz   ,alpha,beta,n,'wpwpavg',ifverbose)			!w'w'
+        call avg3(ravg(1,8),uf,vy,alpha,beta,n,'upvpavg',ifverbose)			!u'v'
+        call avg3(ravg(1,9),uf,vz,alpha,beta,n,'upwpavg',ifverbose)			!u'w'
+        call avg3(ravg(1,10),vy,vz,alpha,beta,n,'vpwpavg',ifverbose)			!v'w'
+
+c	DISSIPATION ARRAYS
+
+        call avg1(dudz2a,dudz2   ,alpha,beta,n,'dudza',ifverbose)				!dudwz
+        call avg1(dvdz2a,dvdz2   ,alpha,beta,n,'dvdza',ifverbose)				!dvdwz
+        call avg1(dwdz2a,dwdz2   ,alpha,beta,n,'dwdza',ifverbose)				!dwdwz
+
+c	THIS MERELY IS COMPUTING TO STORE AND PLANFORM AVERAGE IN THE NEXT STEP
+c	AVERAGE OF AN AVERAGE IS AN AVERAGE
+	  call avg1(ravg(1,11),dudz2a+dvdz2a+dwdz2a,alpha,beta,
+     $	n,'dissipation',ifverbose)								!Dissipation	  
+
+c	PRODUCTION TERM
+        call avg3(ravg(1,12),uf*vz,dudzp,alpha,beta,n,'Pk',ifverbose)			!Pk
+	
+	endif
+
+c     Reset old time as new time
+      timel = time
+
+      ! write statistics to file
+      if(istep.gt.0 .and. time.gt.(ntdump+1)*tSTATFREQ) then
+         ! averaging over statistical homogeneous directions (x-y)
+         do i = 1,nstat
+            call planar_avg(wo1      ,ravg(1,i),igs_y)
+            call planar_avg(stat(1,i),wo1      ,igs_y)
+         enddo
+
+         ! extract data along wall normal direction (1D profile)
+         call interp_nfld(stat_z,stat,nstat,xint,yint,zint,nint,
+     $                    iwk,rwk,INTP_NMAX,iffpts,intp_h)
+
+         ntdump = ntdump + 1
+
+         if (nid.ne.0) goto 998 
+
+         write(6,*) 'Dumping statistics ...'
+
+c	Write each parameter in a different file
+
+		if(nid.eq.0) then
+
+         open(unit=56,file='stats/mean_prof.dat')			!MEAN VELOCITY
+         write(56,'(A,1pe14.7)') '#time = ', time
+         write(56,'(A)') 
+     $    '#  z    Umean	uf	vf	wf	ufsq	vfsq	wfsq	ufvf	ufwf
+     $	vfwf	dissipation	production'
+
+
+         do i = 1,nint
+             zz = zint(i)
+
+            write(56,3) 
+     &           zz,							    !z
+     &           stat_z(0*nint+i),					!ubar
+     &           stat_z(1*nint+i),					!u' (IGNORE THIS FIELD)
+     &           stat_z(2*nint+i),					!v'
+     &           stat_z(3*nint+i),					!w'
+     &           stat_z(4*nint+i),					!u'u'
+     &           stat_z(5*nint+i),					!v'v'
+     &           stat_z(6*nint+i),					!w'w'
+     &           stat_z(7*nint+i),					!u'v'
+     &           stat_z(8*nint+i),					!u'w'
+     &           stat_z(9*nint+i),					!v'w'
+     &	     kinematicViscosity*stat_z(10*nint+i),	!Dissipation
+     &           stat_z(11*nint+i)					!Production
+
+  3         format(1p15e17.9)
+         enddo
+	   close(56)	!Close mean_prof.dat file
+	endif			!nid.eq.0 if statement end
+		
+
+ 998  endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userqtl ! Set thermal divergence
+
+c      call userqtl_scig 
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat()   ! This routine to modify element vertices
+
+c      implicit none
+
+      include 'SIZE'
+      include 'TOTAL'
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2()  ! This routine to modify mesh coordinates
+
+c      implicit none
+
+      include 'SIZE'
+      include 'TOTAL'
+      include 'ZPER'   ! for nelx,nely,nelz
+	  
+	  real*8 ksp,erest
+      common /ucollision/ ksp,erest
+      data ksp   /1000000.0/ ! note: this limits dt, whcih we explicity set in .par file
+      data erest /1.0/
+
+      common /nekmpi/ mid,mp,nekcomm,nekgroup,nekreal
+
+      real*8 y(PPICLF_LRS    , PPICLF_LPART) ! Normal ordering
+      real*8 rprop(PPICLF_LRP, PPICLF_LPART) ! Normal ordering
+
+      real*8 dp,rhop,rlx,rrx,rly,rry,rlz,rrz,rspace
+      integer*4 imethod,iendian,nmain,noff,nrow,npart
+
+      ! Pass to library to Init MPI
+      call ppiclf_comm_InitMPI(nekcomm,
+     >                         nid    , ! nid already defined in Nek5000
+     >                         np     ) ! np already defined in Nek5000
+
+      ! Set initial conditions and parameters for particles
+      dp      = 1.2E-2
+      rhop    = 500.0D0
+      rdp     = 1.01*dp ! extra threshold when initially placed
+      rlx     =  0.0
+      rrx     =  200.0
+      rly     =  0.0
+      rry     =  200.0
+      rlz     =  dp
+      rrz     =  dp
+      nmain   = 100
+      noff    = nmain
+      rspace  = sqrt(0.75d0)*rdp
+      nrow    = 0
+      if (nid .eq. 0) 
+     >nrow = 100
+      npart   = 0
+      ! the loop below will place particles in a nearly bcc packing
+      ! on nid == 0. We could have done in parallel but for the few
+      ! particles in this case rank 0 is fine
+      do i=1,nrow
+         ! main rows, refer to ppiclf/nek5000 for original
+         do j=1,nmain
+               rdum = ran2(2)
+               npart = npart + 1
+               y(PPICLF_JX,npart)  = rlx + rdum*(rrx-rlx)
+               rdum = ran2(2)
+               y(PPICLF_JY,npart)  = rly + rdum*(rry-rly)
+               rdum = ran2(2)
+               y(PPICLF_JZ,npart)  = rlz + rdum*(rrz-rlz)
+               y(PPICLF_JVX,npart) = 0.0d0
+               y(PPICLF_JVY,npart) = 0.0d0
+               y(PPICLF_JVZ,npart) = 0.0d0
+
+               rprop(PPICLF_R_JRHOP,npart) = rhop
+               rprop(PPICLF_R_JDP  ,npart) = dp
+               rprop(PPICLF_R_JVOLP,npart) = pi/6.0D0*dp**3
+         enddo
+      enddo
+      imethod = 1
+      iendian = 0
+!     ndim    = 2 ! ndim already defined in Nek5000
+      call ppiclf_solve_InitParticle(imethod   ,
+     >                               ndim      ,
+     >                               iendian   ,
+     >                               npart     ,
+     >                               y(1,1)    ,
+     >                               rprop(1,1))
+
+
+      ! Specify Gaussian filter
+      call ppiclf_solve_InitGaussianFilter(8.0*dp,1E-3,1)
+
+      ! Specify Overlap Mesh
+      call ppiclf_comm_InitOverlapMesh(nelt,lx1,ly1,lz1,xm1,ym1,zm1)
+
+      ! Specify neighbor bin size
+      call ppiclf_solve_InitNeighborBin(dp)
+c      call ppiclf_io_ReadWallVTK("wall.vtk")
+
+      ! Add a bottom wall boundary
+      call ppiclf_solve_InitWall( 
+     >                 (/0.0,0.0,0.0/),
+     >                 (/400.0,0.0,0.0/),
+     >                 (/400.0,200.0,0.0/))
+      call ppiclf_solve_InitWall( 
+     >                 (/0.0,0.0,0.0/),
+     >                 (/0.0,200.0,0.0/),
+     >                 (/400.0,200.0,0.0/))
+
+      ! Set left and right boundaries to periodic
+      call ppiclf_solve_InitPeriodicX(0.0,400.0)
+      call ppiclf_solve_InitPeriodicY(0.0,200.0)
+	  
+c	  do iel=1,nelv
+c      do ifc=1,2*ndim
+c        id_face = bc(5,ifc,iel,1)
+c         if (id_face.eq.406) then
+c            cbc(ifc,iel,1) = 'W  '
+c         elseif (id_face.eq.405) then
+c            cbc(ifc,iel,1) = 'SYM'
+c         endif
+c      enddo
+c      enddo
+
+      do iel=1,nelt
+      do ifc=1,2*ndim
+         if (cbc(ifc,iel,1) .eq. 'W  ') boundaryID(ifc,iel) = 1
+      enddo
+      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3()
+
+c      implicit none
+
+      include 'SIZE'
+      include 'TOTAL'
+
+      return
+      end
+	  
+c-----------------------------------------------------------------------
+      real*8 FUNCTION ran2(idum)
+      INTEGER*4 idum,IM1,IM2,IMM1,IA1,IA2,IQ1,IQ2,IR1,IR2,NTAB,NDIV
+      REAL*8 AM,EPS,RNMX
+      PARAMETER (IM1=2147483563,IM2=2147483399,AM=1./IM1,IMM1=IM1-1,
+     $        IA1=40014,IA2=40692,IQ1=53668,IQ2=52774,IR1=12211,
+     $        IR2=3791,NTAB=32,NDIV=1+IMM1/NTAB,EPS=1.2e-7,RNMX=1.-EPS)
+c Long period (> 2 ! 1018 ) random number generator of L’Ecuyer with
+c Bays-Durham shufle and added saeguards. Returns a uniform random deviate
+c between 0.0 and 1.0 (exclusive of the endpoint values).
+c Call with idum a negative integer to initialize; thereafter, do not alter
+c idum between successive deviates in a sequence. RNMX should approximate the
+c largest floating value that is less than 1.
+      INTEGER*4 idum2,j,k,iv(NTAB),iy
+      SAVE iv,iy,idum2
+      DATA idum2/123456789/, iv/NTAB*0/, iy/0/
+      if (idum.le.0) then
+         idum1=max(-idum,1)
+         idum2=idum1
+         do j=NTAB+8,1,-1
+            k=idum1/IQ1
+            idum1=IA1*(idum1-k*IQ1)-k*IR1
+            if (idum1.lt.0) idum1=idum1+IM1
+            if (j.le.NTAB) iv(j)=idum1
+         enddo
+         iy=iv(1)
+      endif
+      k=idum1/IQ1
+      idum1=IA1*(idum1-k*IQ1)-k*IR1
+      if (idum1.lt.0) idum1=idum1+IM1
+      k=idum2/IQ2
+      idum2=IA2*(idum2-k*IQ2)-k*IR2
+      if (idum2.lt.0) idum2=idum2+IM2
+      j=1+iy/NDIV
+      iy=iv(j)-idum2
+      iv(j)=idum1
+      if(iy.lt.1)iy=iy+IMM1
+      ran2=min(AM*iy,RNMX)
+      return
+      END
+	  
+c-----------------------------------------------------------------------
+
+	subroutine	computeUFluc()
+
+	include 'SIZE'
+	include 'TOTAL'
+
+c	Define the u' component and make it a common datablock
+	common /compUFluc/ uf(lx1,ly1,lz1,lelt)		!This is the u' velocity
+     $			,ua(lx1,ly1,lz1,lelt)		!This is the mean velocity
+
+	common /igs_Data/ igs_x, igs_y			!Common dataset from gtpp_gs_setup
+
+c	Work array which is used in the planar average routine (Not shared elsewhere)
+      real work(lx1,ly1,lz1,lelt)
+
+c	Since this subroutine is called after gtpp_gs_setup is done
+c	We can simple use it to compute the planar average first and then compute fluc
+
+	call planar_avg(work,vx,igs_y)		!Average in x
+	call planar_avg(ua,work,igs_y)		!Average in y
+
+c	Compute the fluctuating component
+	do i=1,nx1*ny1*nz1*nelv
+            uf(i,1,1,1) = vx(i,1,1,1) - ua(i,1,1,1)      !ua Averaged in homogeneous directions
+      enddo
+
+c     Note: Nikora et. al suggest that this planform average = time average is only valid for smooth walls and not rough walls!
+c     Consequently, using this approach for rough wall DNS/LES will not reflect the right values close to the bed
+	
+      return
+	end
+c-----------------------------------------------------------------------

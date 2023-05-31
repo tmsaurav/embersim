@@ -1,0 +1,53 @@
+#
+# nek parameter file
+#
+[GENERAL] 
+polynomialOrder = 9
+PnPnFormulation = yes
+minNumProcesses = 48
+
+startFrom = ./dupont20110.f00001 
+stopAt = endTime
+endTime = 5500
+
+dt = 0
+timeStepper = bdf2
+extrapolation = OIFS
+variableDt = yes
+targetCFL = 0.9
+
+writeControl = runTime
+writeInterval = 50.0
+
+userParam01 = 3500    # start time collecting statistics
+userParam02 = 30     # writeInterval 1D statistics 
+userParam03 = 22     # canopy height, h
+userParam04 = 0.06    # canopy lower limit, z/h
+userParam05 = 1.0    # canopy upper limit, z/h
+userParam06 = 0.26   # drag coefficient, c_d
+userParam07 = 0.4106 # gauss, a
+userParam08 = 0.8408 # gauss, b
+userParam09 = 0.1499 # gauss, c
+
+filtering = hpfrt
+filterWeight = 10
+filterCutoffRatio = 0.9 
+
+[PROBLEMTYPE]
+#variableProperties = yes
+equation = incompNS
+
+[PRESSURE]
+preconditioner = semg_xxt
+residualTol = 1e-4 
+residualProj = yes
+
+[VELOCITY]
+residualTol = 1e-6 
+density = 1.225
+viscosity = 1.81e-5
+
+#[TEMPERATURE]
+#rhoCp = 1.
+#conductivity = -10000
+#residualTol = 1e-6 
