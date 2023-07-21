@@ -1,0 +1,29 @@
+c	Common datablock from the compueUFluc subroutine
+	common /compUFluc/ uf(lx1,ly1,lz1,lelt)         !This is the u' velocity
+     $			,ua(lx1,ly1,lz1,lelt)		!This is the u_bar
+	
+c	Gradient fields for computing dissipation terms
+      real               dudx(lx1,ly1,lz1,lelt)
+     $                ,  dudy(lx1,ly1,lz1,lelt)
+     $                ,  dudz(lx1,ly1,lz1,lelt)
+     $                ,  dvdx(lx1,ly1,lz1,lelt)
+     $                ,  dvdy(lx1,ly1,lz1,lelt)
+     $                ,  dvdz(lx1,ly1,lz1,lelt)
+     $                ,  dwdx(lx1,ly1,lz1,lelt)
+     $                ,  dwdy(lx1,ly1,lz1,lelt)
+     $                ,  dwdz(lx1,ly1,lz1,lelt)
+     $                ,  dudxp(lx1,ly1,lz1,lelt)            !dU/dx_j terms
+     $                ,  dudyp(lx1,ly1,lz1,lelt)            !used for calculating production terms
+     $                ,  dudzp(lx1,ly1,lz1,lelt)		!The p at the end denotes production
+
+
+c	Dissipation arrays for individual terms
+	real			dudz2(lx1,ly1,lz1,lelt)
+     $		    , dvdz2(lx1,ly1,lz1,lelt)
+     $		    , dwdz2(lx1,ly1,lz1,lelt)
+     $		    , dudz2a(lx1,ly1,lz1,lelt)
+     $		    , dvdz2a(lx1,ly1,lz1,lelt)
+     $		    , dwdz2a(lx1,ly1,lz1,lelt)
+	     
+
+

@@ -1,0 +1,51 @@
+#
+# nek parameter file
+#
+[GENERAL] 
+polynomialOrder = 9
+PnPnFormulation = yes
+minNumProcesses = 48
+
+#startFrom = ./embersim0.f00044 
+stopAt = endTime
+endTime = 5500
+
+dt = 0.02
+timeStepper = bdf2
+extrapolation = OIFS
+variableDt = yes
+targetCFL = 0.75
+
+writeControl = timeStep
+writeInterval = 100
+
+userParam01 = 22     # canopy height, h
+userParam02 = 0.06   # canopy lower limit, z/h
+userParam03 = 1.0    # canopy upper limit, z/h
+userParam04 = 0.26   # drag coefficient, c_d
+userParam05 = 0.4106 # gauss, a
+userParam06 = 0.8408 # gauss, b
+userParam07 = 0.1499 # gauss, c
+
+filtering = hpfrt
+filterWeight = 7
+filterCutoffRatio = 0.65 
+
+[PROBLEMTYPE]
+#variableProperties = yes
+equation = incompNS
+
+[PRESSURE]
+preconditioner = semg_xxt
+residualTol = 1e-4 
+residualProj = yes
+
+[VELOCITY]
+residualTol = 1e-6 
+density = 1.205
+viscosity = 1.8e-5
+
+#[TEMPERATURE]
+#rhoCp = 1.
+#conductivity = -10000
+#residualTol = 1e-6 

@@ -1,0 +1,787 @@
+c#include "PPICLF_USER.h" 
+c#include "PPICLF_STD.h" 
+c----------------------------------------------------------------------- 
+c	FOREST CANOPY 
+c-----------------------------------------------------------------------
+      subroutine uservp (ix,iy,iz,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e
+
+      utrans = 1.
+      udiff  = param(2)
+
+      if (ifield .eq. 2) then
+         e = gllel(ieg)
+         udiff = param(8)
+      endif
+
+      return
+      end
+
+c-----------------------------------------------------------------------
+      subroutine userf(ix,iy,iz,eg) ! set up acceleration terms
+c
+c     NOTE: This is an acceleration term, NOT a force!
+c     Thus, ffx will subsequently be multiplied by rho(x,t).
+c
+c     implicit none
+
+      integer ix,iy,iz,eg
+
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      ffx = 0.0
+      ffy = 0.0
+      ffz = 0.0
+
+c      dpdx = 0.0017
+
+      h_c = uparam(1)
+      zh_l = uparam(2)
+      zh_t = uparam(3)
+
+      c_d = uparam(4)
+
+      g_a = uparam(5)
+      g_b = uparam(6)
+      g_c = uparam(7)
+
+
+      uMag = sqrt(ux**2+uy**2+uz**2)
+
+
+      if(((z/h_c .lt. zh_t) .and. (z/h_c .gt. zh_l)) .and.
+     + (x .lt. -100.)) then
+        ffx=-c_d*g_a*exp(-((z/h_c-g_b)**2)/g_c**2)*ux*uMag
+        ffy=-c_d*g_a*exp(-((z/h_c-g_b)**2)/g_c**2)*uy*uMag
+        ffz=-c_d*g_a*exp(-((z/h_c-g_b)**2)/g_c**2)*uz*uMag
+      endif
+
+c      ffx = ffx + dpdx
+
+
+      return
+      end
+
+c-----------------------------------------------------------------------
+      subroutine userq(ix,iy,iz,eg) ! set source term
+
+c     implicit none
+
+      integer ix,iy,iz,eg
+
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      qvol   = 0.0
+
+      return
+      end
+
+c-----------------------------------------------------------------------
+      subroutine userbc(i,j,k,f,eg) ! set up boundary conditions
+c
+c     NOTE: This subroutine MAY NOT be called by every process
+c
+c     implicit none
+
+c      integer ix,iy,iz,iside,eg
+
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+c      real htwo
+c      htwo = 2*uparam(3)
+
+c      ux   = 6.0*log(1+z)/log(1+htwo) !0.0
+c      uy   = 0.0
+c      uz   = 0.0
+c      temp = 0.0
+      
+      common /cvelbc/ uin(lx1,ly1,lz1,lelv)
+     $              , vin(lx1,ly1,lz1,lelv)
+     $              , win(lx1,ly1,lz1,lelv)
+
+      integer e,f,eg
+      e = gllel(eg)
+
+      ux = uin(i,j,k,e)
+      uy = vin(i,j,k,e)
+      uz = win(i,j,k,e)
+
+      temp = 0.0
+      
+      return
+      end
+
+c-----------------------------------------------------------------------
+      subroutine useric(ix,iy,iz,eg) ! set up initial conditions
+
+c     implicit none
+
+      integer ix,iy,iz,eg
+
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      real htwo, kx, ky
+
+      XLEN = 400.0
+      YLEN = 200.0
+
+      htwo = 2*uparam(3)
+
+      eps = 2e-2
+      kx = 40
+      ky = 20
+
+      alpha = kx * 400/XLEN
+      beta  = ky * 200/YLEN
+
+      ux = 6.5*log(1+z)/log(1+htwo)
+      uy = 0.0
+      uz = 0.0
+
+      ux = ux + eps*beta*sin(alpha*x)*cos(beta*y)
+      uy =    -eps*alpha*cos(alpha*x)*sin(beta*y)
+      uz =      eps*beta*sin(alpha*x)*cos(beta*y)
+
+      return
+      end
+
+c-----------------------------------------------------------------------
+      subroutine userchk()
+
+      include 'SIZE'
+      include 'TOTAL'
+      include 'ARRAY_DEF'
+
+c      real rphip(PPICLF_LEX,PPICLF_LEY,PPICLF_LEZ,lelt)
+
+c      real*8 y(PPICLF_LRS    , PPICLF_LPART) ! Normal ordering
+c      real*8 rprop(PPICLF_LRP, PPICLF_LPART) ! Normal ordering
+c      integer*4 npart
+      real d(lx1*ly1*lz1*lelt), m1(lx1*ly1*lz1,lelt), rq, uin
+      real dx,dy,dz,ubar
+      
+
+c************** Recycling using Findpts **********************
+
+      dx = 150.
+      dy = 0.
+      dz = 0.
+      ubar = 6.78
+      call set_inflow_fpt(dx,dy,dz,ubar)
+
+c*************************************************************
+
+c**************** Dong Outflow BC ****************************      
+      
+      rq = 3.0 ! flowrate ratio uout/uin (1.5 is good)
+      uin = 0. ! will compute exact flowrate if = 0
+      call turb_outflow(d,m1,rq,uin)     
+
+c*************************************************************
+
+
+c     Inject particles this many steps
+c      inject_freq = 3000
+c      ! But wait for this many steps to start/end
+c      inject_end = 6001
+c     inject_start = 999999
+c      if ( ( mod(istep,inject_freq) .eq. 1) .and. 
+c     >     ( istep .le. inject_end      )       ) then
+c
+c        Place particles specified as user
+c         call my_place_particle(npart,y,rprop)
+c
+c        Add them into solver
+c         call ppiclf_solve_AddParticles(npart,y,rprop)
+c
+c      endif
+c
+c     Interpolate fields to particle positions
+c      call ppiclf_solve_InterpFieldUser(PPICLF_R_JPHIP
+c     >                          ,rphip(1,1,1,1))
+c      call ppiclf_solve_InterpFieldUser(PPICLF_R_JUX
+c     >                          ,vx(1,1,1,1))
+c      call ppiclf_solve_InterpFieldUser(PPICLF_R_JUY
+c     >                          ,vy(1,1,1,1))
+c      call ppiclf_solve_InterpFieldUser(PPICLF_R_JUZ
+c     >                          ,vz(1,1,1,1))
+
+c     Integrate particles
+c      call ppiclf_solve_IntegrateParticle(istep ,
+c     >                                    iostep,
+c     >                                    dt    ,
+c     >                                    time  )
+
+
+c     Computing the pseudo-velocities
+
+c      ubar = glsc2(vx,bm1,n)/volvm1
+c      e2   = glsc3(vy,bm1,vy,n)+glsc3(vz,bm1,vz,n)
+c      e2   = e2/volvm1
+
+c     Print the values at each time step
+c      if(nid.eq.0) write(6,*) 'Time:',time,'Ux:',ubar,'Uy+Uz:',e2
+
+
+      return
+      end
+
+c-----------------------------------------------------------------------
+      subroutine userqtl ! Set thermal divergence
+
+c      call userqtl_scig 
+
+      return
+      end
+ 
+c-----------------------------------------------------------------------
+      subroutine usrdat()   ! This routine to modify element vertices
+
+c      implicit none
+
+      include 'SIZE'
+      include 'TOTAL'
+
+      return
+      end
+
+c-----------------------------------------------------------------------
+      subroutine usrdat2()  ! This routine to modify mesh coordinates
+
+c     implicit none
+
+      include 'SIZE'
+      include 'TOTAL'
+      include 'ZPER'   ! for nelx,nely,nelz
+
+c      real*8 ksp,erest
+c      common /ucollision/ ksp,erest
+c      data ksp   /1000000.0/ ! note: this limits dt, whcih we explicity set in .par file
+c      data erest /1.0/
+
+      common /nekmpi/ mid,mp,nekcomm,nekgroup,nekreal
+
+c      real*8 y(PPICLF_LRS    , PPICLF_LPART) ! Normal ordering
+c      real*8 rprop(PPICLF_LRP, PPICLF_LPART) ! Normal ordering
+
+      real*8 dp
+      integer*4 imethod,iendian,npart
+      common /particle_dp/ dp
+c     real*8 dp,rhop,rlx,rrx,rly,rry,rlz,rrz,rspace
+c     integer*4 imethod,iendian,nmain,noff,nrow,npart
+
+c     Pass to library to Init MPI
+c      call ppiclf_comm_InitMPI(nekcomm,
+c     >                         nid    , ! nid already defined in Nek5000
+c     >                         np     ) ! np already defined in Nek5000
+
+
+      npart = 0
+      dp = 1.2E-2
+
+      imethod = 1
+      iendian = 0
+c     ndim    = 2 ! ndim already defined in Nek5000
+c     call ppiclf_io_ReadParticleVTU("par.vtu")
+
+c      call ppiclf_solve_InitParticle(imethod   ,
+c     >                               ndim      ,
+c     >                               iendian   ,
+c     >                               npart     ,
+c     >                               y(1,1)    ,
+c     >                               rprop(1,1))
+
+c     Specify Gaussian filter
+c      call ppiclf_solve_InitGaussianFilter(8.0*dp,1E-3,1)
+
+c     Specify Overlap Mesh
+c      call ppiclf_comm_InitOverlapMesh(nelt,lx1,ly1,lz1,xm1,ym1,zm1)
+
+c     Specify neighbor bin size
+c      call ppiclf_solve_InitNeighborBin(dp)
+c      call ppiclf_io_ReadWallVTK("wall.vtk")
+
+c     Add a bottom wall boundary
+c      call ppiclf_solve_InitWall( 
+c     >                 (/-400.0,-1.0,0.0/),
+c     >                 (/401.0,-1.0,0.0/),
+c     >                 (/401.0,201.0,0.0/))
+c      call ppiclf_solve_InitWall( 
+c     >                 (/0.0,0.0,0.0/),
+c     >                 (/0.0,200.0,0.0/),
+c     >                 (/400.0,200.0,0.0/))
+
+c     Set left and right boundaries to periodic
+c      call ppiclf_solve_InitPeriodicX(0.0,400.0)
+c      call ppiclf_solve_InitPeriodicY(0.0,200.0)
+c     call ppiclf_solve_InitPeriodicZ(0.0,100.0)
+
+      do iel=1,nelv
+        do ifc=1,2*ndim
+          id_face = bc(5,ifc,iel,1)
+           if (id_face.eq.11) then
+             cbc(ifc,iel,1) = 'v  '
+           elseif (id_face.eq.22) then
+             cbc(ifc,iel,1) = 'O  '
+           elseif (id_face.eq.90) then
+             cbc(ifc,iel,1) = 'W  '
+           elseif (id_face.eq.99) then
+             cbc(ifc,iel,1) = 'SYM'
+           endif
+        enddo
+      enddo
+
+c      do iel=1,nelt
+c        do ifc=1,2*ndim
+c          if (cbc(ifc,iel,1) .eq. 'W  ') boundaryID(ifc,iel) = 1
+c        enddo
+c      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3()
+
+c      implicit none
+
+      include 'SIZE'
+      include 'TOTAL'
+
+      return
+      end
+
+c-----------------------------------------------------------------------
+      subroutine my_place_particle(npart,y,rprop)
+      include 'SIZE'
+      include 'TOTAL'
+
+      integer*4 npart
+      real*8 y(*)
+      real*8 rprop(*)
+
+
+	  real*8 dp,rhop,rlx,rrx,rly,rry,rlz,rrz,rspace
+      integer*4 nmain,noff,nrow,ndep,ncol
+c      real*8 rdp,rhop,rlx,rrx,ry
+c      real*8 dp
+      common /particle_dp/ dp
+!
+
+      ! Set initial conditions and parameters for particles
+c      dp      = 1.0E-2
+      rhop    = 500.0D0
+      rdp     = 1.01*dp ! extra threshold when initially placed
+      rlx     =  95.0
+      rrx     =  100.0
+      rly     =  0.0
+      rry     =  200.0
+      rlz     =  2.0
+      rrz     =  20.0
+      nmain   = 100
+      noff    = nmain
+      rspace  = sqrt(0.75d0)*rdp
+      nrow    = 0
+
+c      ndep    = 10
+c      ncol     = 10
+c      nrow    = 10
+
+
+c      npart = 0
+c      i0    = nid+1
+
+c      iskip = np
+
+
+c      if (i0.le.nrow) then      ! Handle case where P > nrow
+
+c        do i=i0,nrow,iskip      ! e.g., if np=10, rank 0 fills 1,11,21,...,91
+c        do j=1,ncol
+c        do k=1,ndep
+
+c          npart = npart + 1
+
+c          y(PPICLF_JX,npart)  = rlx + rspace*(i-1)
+c          y(PPICLF_JY,npart)  = rly + rspace*(j-1)
+c          y(PPICLF_JZ,npart)  = rlz + rspace*(k-1)
+c          y(PPICLF_JVX,npart) = 0.0d0
+c          y(PPICLF_JVY,npart)  = 0.0d0
+c          y(PPICLF_JVZ,npart) = 0.0d0
+
+c          rprop(PPICLF_R_JRHOP,npart) = rhop
+c          rprop(PPICLF_R_JDP  ,npart) = dp
+c          rprop(PPICLF_R_JVOLP,npart) = pi*dp**3/6.0D0
+c        enddo
+c        enddo
+c        enddo
+c      endif
+c      if (nid .eq. 0) 
+c     >nrow = 100
+c      npart   = 0
+c      ! the loop below will place particles in a nearly bcc packing
+c      ! on nid == 0. We could have done in parallel but for the few
+c      ! particles in this case rank 0 is fine
+c      do i=1,nrow
+c         ! main rows, refer to ppiclf/nek5000 for original
+c         do j=1,nmain
+c               rdum = ran2(2)
+c               npart = npart + 1
+c               k = PPICLF_LRS*(npart-1)
+c               y(k+PPICLF_JX)  = rlx + rdum*(rrx-rlx)
+c               rdum = ran2(2)
+c               y(k+PPICLF_JY)  = rly + rdum*(rry-rly)
+c               rdum = ran2(2)
+c               y(k+PPICLF_JZ)  = rlz + rdum*(rrz-rlz)
+c               y(k+PPICLF_JVX) = 0.0d0
+c               y(k+PPICLF_JVY) = 0.0d0
+c               y(k+PPICLF_JVZ) = 0.0d0
+
+c               k = PPICLF_LRP*(npart-1)
+c               rprop(k+PPICLF_R_JRHOP) = rhop
+c               rprop(k+PPICLF_R_JDP) = dp
+c               rprop(k+PPICLF_R_JVOLP) = pi/6.0D0*dp**3
+c         enddo
+c      enddo
+	  
+      ! Set initial conditions and parameters for particles
+C       rhop    = 10.0D0
+C       rdp     = 2.00*dp ! extra threshold when initially placed
+C       rlx     = -0.01
+C       rrx     =  0.01
+C       ry      =  0.000+rdp/2.0
+C       npart_d = int((rrx-rlx)/rdp)+1
+C       npart   = 0
+
+C       if (nid .eq. 0) then
+C          npart = npart_d
+C          do i=1,npart
+C             j = PPICLF_LRS*(i-1)
+C             y(j+PPICLF_JX)  = rlx + rdp*(i-1)
+C             y(j+PPICLF_JY)  = ry 
+C             y(j+PPICLF_JVX) = 0.0d0
+C             y(j+PPICLF_JVY) = 0.0d0
+   
+C             j = PPICLF_LRP*(i-1)
+C             rprop(j+PPICLF_R_JRHOP) = rhop
+C             rprop(j+PPICLF_R_JDP)   = dp
+C             rprop(j+PPICLF_R_JVOLP) = pi/6.0D0*dp**3
+C          enddo
+C       endif
+
+      end
+      
+c-----------------------------------------------------------------------
+      real*8 FUNCTION ran2(idum)
+      INTEGER*4 idum,IM1,IM2,IMM1,IA1,IA2,IQ1,IQ2,IR1,IR2,NTAB,NDIV
+      REAL*8 AM,EPS,RNMX
+      PARAMETER (IM1=2147483563,IM2=2147483399,AM=1./IM1,IMM1=IM1-1,
+     $        IA1=40014,IA2=40692,IQ1=53668,IQ2=52774,IR1=12211,
+     $        IR2=3791,NTAB=32,NDIV=1+IMM1/NTAB,EPS=1.2e-7,RNMX=1.-EPS)
+c Long period (> 2 ! 1018 ) random number generator of L’Ecuyer with
+c Bays-Durham shufle and added saeguards. Returns a uniform random deviate
+c between 0.0 and 1.0 (exclusive of the endpoint values).
+c Call with idum a negative integer to initialize; thereafter, do not alter
+c idum between successive deviates in a sequence. RNMX should approximate the
+c largest floating value that is less than 1.
+      INTEGER*4 idum2,j,k,iv(NTAB),iy
+      SAVE iv,iy,idum2
+      DATA idum2/123456789/, iv/NTAB*0/, iy/0/
+      if (idum.le.0) then
+         idum1=max(-idum,1)
+         idum2=idum1
+         do j=NTAB+8,1,-1
+            k=idum1/IQ1
+            idum1=IA1*(idum1-k*IQ1)-k*IR1
+            if (idum1.lt.0) idum1=idum1+IM1
+            if (j.le.NTAB) iv(j)=idum1
+         enddo
+         iy=iv(1)
+      endif
+      k=idum1/IQ1
+      idum1=IA1*(idum1-k*IQ1)-k*IR1
+      if (idum1.lt.0) idum1=idum1+IM1
+      k=idum2/IQ2
+      idum2=IA2*(idum2-k*IQ2)-k*IR2
+      if (idum2.lt.0) idum2=idum2+IM2
+      j=1+iy/NDIV
+      iy=iv(j)-idum2
+      iv(j)=idum1
+      if(iy.lt.1)iy=iy+IMM1
+      ran2=min(AM*iy,RNMX)
+      return
+      END
+
+	  
+c-----------------------------------------------------------------------
+c  Recucling BC using findpts
+c-----------------------------------------------------------------------
+      subroutine field_copy_si(fieldout,fieldin,idlist,nptsi)
+      include 'SIZE'
+      include 'TOTAL'
+
+      real    fieldin(1),fieldout(1)
+      integer idlist(1)
+
+      do i=1,nptsi
+        idx = idlist(i)
+        fieldout(idx) = fieldin(i)
+      enddo
+
+      return
+      end
+C--------------------------------------------------------------------------
+      subroutine field_eval_si(fieldout,fieldstride,fieldin)
+      include 'SIZE'
+      include 'TOTAL'
+
+      real fieldout(1),fieldin(1)
+
+      integer fieldstride,nptsi
+
+      parameter (lt=lelv*lx1*lz1) ! HERE 
+
+      integer elid_si(lt),proc_si(lt),ptid(lt),rcode_si(lt)
+      common /ptlist_int/ elid_si,proc_si,ptid,rcode_si,nptsi
+
+      real    rst_si(lt*ldim)
+      common /ptlist_real/ rst_si
+
+      integer inth_si
+      common / fpt_h_si/ inth_si
+
+c     Used for fgslib_findpts_eval of various fields
+      call fgslib_findpts_eval(inth_si,fieldout,fieldstride,
+     &                     rcode_si,1,
+     &                     proc_si,1,
+     &                     elid_si,1,
+     &                     rst_si,ndim,nptsi,
+     &                     fieldin)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine rescale_inflow_fpt(ubar_in)  ! rescale inflow
+      include 'SIZE'
+      include 'TOTAL'
+
+      integer icalld,e,eg,f
+      save    icalld
+      data    icalld /0/
+      common /cvelbc/ uin(lx1,ly1,lz1,lelv)
+     $              , vin(lx1,ly1,lz1,lelv)
+     $              , win(lx1,ly1,lz1,lelv)
+
+      call get_flux_and_area(ubar,abar)
+      ubar  = ubar/abar        ! Ubar
+      scale = ubar_in/ubar     ! Scale factor
+
+      if (nid.eq.0.and.(istep.le.100.or.mod(istep,100).eq.0))
+     $  write(6,1) istep,time,scale,ubar,abar
+    1   format(1i8,1p4e14.6,' rescale')
+
+c     Rescale the flow to match ubar_in
+      do e=1,nelv
+      do f=1,2*ldim
+        if (cbc(f,e,1).eq.'v  ') then
+           call facind (kx1,kx2,ky1,ky2,kz1,kz2,nx1,ny1,nz1,f)
+           do iz=kz1,kz2
+           do iy=ky1,ky2
+           do ix=kx1,kx2
+              uin(ix,iy,iz,e) =  scale*uin(ix,iy,iz,e)
+              vin(ix,iy,iz,e) =  scale*vin(ix,iy,iz,e)
+              win(ix,iy,iz,e) =  scale*win(ix,iy,iz,e)
+           enddo
+           enddo
+           enddo
+        endif
+      enddo
+      enddo
+
+      ifield = 1       ! Project into H1, just to be sure....
+      call dsavg(uin)
+      call dsavg(vin)
+      if (ldim.eq.3) call dsavg(win)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine get_flux_and_area(vvflux,vvarea)
+      include 'SIZE'
+      include 'TOTAL'
+      common /cvelbc/ uin(lx1,ly1,lz1,lelv)
+     $              , vin(lx1,ly1,lz1,lelv)
+     $              , win(lx1,ly1,lz1,lelv)
+      real vvflux,vvarea
+      real work(lx1*ly1*lz1)
+      integer e,f
+
+      nxz   = nx1*nz1 ! HERE
+      nface = 2*ndim
+
+      vvflux = 0.
+      vvarea = 0.
+
+      do e=1,nelv
+      do f=1,nface
+         if (cbc(f,e,1).eq.'v  ') then
+            call surface_flux(dq,uin,vin,win,e,f,work)
+            vvflux = vvflux + dq
+            vvarea = vvarea + vlsum(area(1,1,f,e),nxz)
+         endif
+      enddo
+      enddo
+      vvflux = glsum(vvflux,1)
+      vvarea = glsum(vvarea,1)
+      vvflux = -vvflux !flux in is negative
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine set_inflow_fpt_setup(dxx,dyy,dzz)   ! set up inflow BCs
+      include 'SIZE'
+      include 'TOTAL'
+c
+c setup recirculation boundary condition based on user supplied dx,dy,dz
+c dx,dy,dz is the vector from the inflow where the user wants the velocity
+c data to be interpolated from
+c
+      integer icalld,e,eg,i,f,nptsi
+      save    icalld
+      data    icalld /0/
+      real dxx,dyy,dzz
+
+      parameter (lt=lx1*lz1*lelv) ! HERE
+      real rst_si(lt*ldim),xyz_si(lt*ldim)
+      real dist_si(lt),vals_si(lt)
+
+      integer elid_si(lt), proc_si(lt),ptid(lt)
+      integer rcode_si(lt)
+      common /ptlist_real/ rst_si
+      common /ptlist_int/ elid_si,proc_si,ptid,rcode_si,nptsi
+      integer inth_si
+      common / fpt_h_si/ inth_si
+      common /cvelbc/ uin(lx1,ly1,lz1,lelv)
+     $              , vin(lx1,ly1,lz1,lelv)
+     $              , win(lx1,ly1,lz1,lelv)
+      common /nekmpi/ nidd,npp,nekcomm,nekgroup,nekreal
+
+      n = nx1*ny1*nz1*nelv
+ccc
+c     Gather info for findpts
+ccc
+      nptsi = 0
+      nxyz = nx1*ny1*nz1
+
+      do e=1,nelv
+      do f=1,2*ndim  !Identify the xyz of the points that are to be found
+       if (cbc(f,e,1).eq.'v  ') then
+           call facind (kx1,kx2,ky1,ky2,kz1,kz2,nx1,ny1,nz1,f)
+           do iz=kz1,kz2
+           do iy=ky1,ky2
+           do ix=kx1,kx2
+            nptsi = nptsi+1
+            xyz_si(ldim*(nptsi-1)+1) = xm1(ix,iy,iz,e) + dxx
+            xyz_si(ldim*(nptsi-1)+2) = ym1(ix,iy,iz,e) + dyy
+      if (ldim.eq.3) xyz_si(ldim*(nptsi-1)+ldim) = zm1(ix,iy,iz,e) + dzz
+            ptid(nptsi) = (e-1)*nxyz+(iz-1)*lx1*ly1+(iy-1)*lx1+ix
+           enddo
+           enddo
+           enddo
+       endif
+      enddo
+      enddo
+      mptsi=iglmax(nptsi,1)
+      if (mptsi.gt.lt)
+     $  call exitti('ERROR: increase lt in inflow_fpt routines.$',mptsi)
+
+c     Setup findpts
+
+      tol     = 1e-10
+      npt_max = 256
+      nxf     = 2*nx1 ! fine mesh for bb-test
+      nyf     = 2*ny1
+      nzf     = 2*nz1
+      bb_t    = 0.1 ! relative size to expand bounding boxes by
+      bb_t    = 0.1 ! relative size to expand bounding boxes by
+      call fgslib_findpts_setup(inth_si,nekcomm,npp,ndim,
+     &                   xm1,ym1,zm1,nx1,ny1,nz1,
+     &                   nelt,nxf,nyf,nzf,bb_t,n,n,
+     &                   npt_max,tol)
+
+
+c     Call findpts to determine el,proc,rst of the xyzs determined above
+
+      call fgslib_findpts(inth_si,rcode_si,1,
+     &             proc_si,1,
+     &             elid_si,1,
+     &             rst_si,ndim,
+     &             dist_si,1,
+     &             xyz_si(1),ldim,
+     &             xyz_si(2),ldim,
+     &             xyz_si(3),ldim,nptsi)
+
+      return
+      end
+C-----------------------------------------------------------------------
+      subroutine set_inflow_fpt(dxx,dyy,dzz,ubar)   ! set up inflow BCs
+      include 'SIZE'
+      include 'TOTAL'
+
+c setup recirculation boundary condition based on user supplied dx,dy,dz
+c dx,dy,dz is the vector from the inflow where the user wants the
+c velocity data to be interpolated from
+
+      integer icalld
+      save    icalld
+      data    icalld /0/
+      real dxx,dyy,dzz
+
+      parameter (lt=lx1*lz1*lelv) ! HERE
+      real rst_si(lt*ldim),xyz_si(lt*ldim)
+      real dist_si(lt),vals_si(lt)
+      common /ptlist_real/ rst_si
+
+      integer elid_si(lt), proc_si(lt),ptid(lt),rcode_si(lt)
+      common /ptlist_int/ elid_si,proc_si,ptid,rcode_si,nptsi
+      integer inth_si
+      common / fpt_h_si/ inth_si
+      common /cvelbc/ uin(lx1,ly1,lz1,lelv)
+     $              , vin(lx1,ly1,lz1,lelv)
+     $              , win(lx1,ly1,lz1,lelv)
+
+
+c     Gather info for findpts and set up inflow BC
+      if (icalld.eq.0) call set_inflow_fpt_setup(dxx,dyy,dzz)
+      icalld=1
+
+
+c     Eval fields and copy to uvwin array
+      call field_eval_si(vals_si,1,vx)
+      call field_copy_si(uin,vals_si,ptid,nptsi)
+
+      call field_eval_si(vals_si,1,vy)
+      call field_copy_si(vin,vals_si,ptid,nptsi)
+
+      if (ldim.eq.3) then
+        call field_eval_si(vals_si,1,vz)
+        call field_copy_si(win,vals_si,ptid,nptsi)
+      endif
+
+c     Rescale the flow so that ubar,vbar or wbar is ubar
+      call rescale_inflow_fpt(ubar)
+
+      return
+      end
+C-----------------------------------------------------------------------
