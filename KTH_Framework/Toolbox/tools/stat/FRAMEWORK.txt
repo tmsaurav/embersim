@@ -1,0 +1,161 @@
+#Configuration file for Nek5000 framework developed at KTH
+# Place for short description; doxygen style
+/**
+@defgroup stat  2D and 3D statistics module
+@ingroup tools
+
+@brief Set of routines to collect 44 fields for statistics
+
+@details 
+This set of routines performs temporal, and, in case of the 2D version, spanwise 
+averaging of some 44 different fields, which include selected statistical moments
+of velocity and pressure up to fourth order. 
+A full list of fields is provided in the field_list.txt file located
+in the same directory as this file.
+Please note that there is no abuse of notation in the names of the quantities,
+ e.g. \<uu\> actually means \<uu\> and not \<u'u'\>.
+
+As metioned above, the module can operate in two regimes, 2D and 3D.
+In the 3D case, the fields are only averaged in time, whereas in 2D
+the they are also averaged spatially along a chosen homogeneous direction.
+To select the mode of operation, the parameter `stat_rdim` defined in
+the include file `STATD` should be set to either 1 for 2D statistics or 0
+for 3D.
+A template for this file is provided in this directory, you should copy it to
+your case folder and rename it to `STATD`.
+
+In the case of 2D statistics, the index of the homogeneous direction should
+be selected as well. This is done by setting the `idir` variable in the
+`user_map2d_get` subroutine, which should be copied into your `.usr` file.
+The module will compute the statistics based on sampling the solution every
+`AVSTEP` iterations. At each `IOSTEP` iteration, two files will be output with
+prefix `c2D` and `sts`, respectively.
+__Important__: the whole simulation must be run on the same number of ranks!
+
+Each `sts` file will hold the data averaged over `IOSTEP` iterations.
+`IOSTEP` is thus both the averaging window length and the frequency of
+output. The `sts` files are in the same format as Nek5000 output files,
+meaning that they can, for example, be opened with Paraview or other
+tools. See also `pstat2d` in this Toolbox for ways of extracting
+data from `sts` files: averaging across sts files, computing additional fields,
+extracting data at arbitrary points. 
+
+The `c2D` files store the element numbering in the `sts`-file mesh,
+the centres of these elements, and also the level of refinement
+(used for adaptive mesh refinement).
+This information is used by the `pstat2d` tool.
+
+In the case of 3D statistics, 11 files, `s01*` to `s11*` will be written
+each `IOSTEP` iterations. Like with the 2D statistics, these will hold
+quantities averaged over `IOSTEP` iterations.
+Each file holds 4 fields, the distribtuion of quantities across the files
+is provided in the `field_list.txt` file in this directory.
+The files can also be opened in e.g. Paraview, but one should be aware
+that the names of the fields are always `x_velocity`, `y_velocity`, 
+`z_velocity` and `temerature`.
+These names have nothing to do with the physical quantity stored.
+Instead, one should consult `field_list.txt` and map the 4 quantities
+listed there to the names above, in the order listed.
+Post-processing of the produced fields can also be performed with the 
+`pstat3d` tool.
+
+@mod_interface
+@interface_list Interface provided:
+-# @ref stat_register
+-# @ref stat_init
+-# @ref stat_end
+-# @ref stat_avg
+
+@par
+@interface_reqr Interface required:
+-# multiple interfaces from @ref rprm and @ref mntr modules
+-# @ref map2d_register , @ref map2d_init and @ref map2d_get from @ref map2d module (automatically registered)
+-# @a user_stat_trnsv; user defined
+
+@warning This module depends on @ref map2d module and (@a user_map2d_get) has to be provided irrespective of the spanwise
+average being performed or not. In case only the time average is performed (stat_rdim=0 in STATD) @a user_map2d_get should 
+be empty, but stil present. However, @ref map2d is automatically registered by statistics tool, so there is no need to add it 
+to @a frame_usr_register and @a frame_usr_init. 
+
+@note @a user_stat_trnsv is a user provided interface for both statistics and @ref tsrs modules.
+
+@mod_interface_example
+@code{.f}
+!======================================================================
+      subroutine userchk
+      include 'TSTEP'
+      
+      if (ISTEP.eq.0) then
+!     start framework
+         call frame_start
+      endif
+
+!     monitor simulation
+      call frame_monitor
+
+!     collect statistics
+      call stat_avg
+
+!     finalise framework
+      if (ISTEP.eq.NSTEPS.or.LASTEP.eq.1) then
+         call frame_end
+      endif
+ 
+      return
+      end
+!======================================================================
+!> @brief Register user specified modules
+      subroutine frame_usr_register
+      implicit none
+
+      include 'SIZE'
+      include 'FRAMELP'
+!-----------------------------------------------------------------------
+      ! register modules
+      call stat_register
+
+      return
+      end subroutine
+!======================================================================
+!> @brief Initialise user specified modules
+      subroutine frame_usr_init
+      implicit none
+
+      include 'SIZE'
+      include 'FRAMELP'
+!-----------------------------------------------------------------------
+      ! initialise modules
+      call stat_init
+
+      return
+      end subroutine
+!======================================================================
+!> @brief Finalise user specified modules
+      subroutine frame_usr_end
+      implicit none
+
+      include 'SIZE'
+      include 'FRAMELP'
+!-----------------------------------------------------------------------
+      ! finlise modules
+      call stat_end
+      
+      return
+      end subroutine
+!=======================================================================
+@endcode
+@include Toolbox/tools/stat/example.usr
+
+@mod_param
+@param_list Parameters provided by stat module (include file - @a STATD):
+|Varaible | Type |Runtime parameter | Description|
+|---------|------|------------------|------------|
+| stat_avstep | integer | _stat:AvStep | frequency of averaging |
+| stat_skstep | integer | _stat:SkStep | skipped initial steps |
+| stat_IOstep | integer | _stat:IOStep | frequency of saving data to the disc |
+
+
+@mod_param_example
+@include Toolbox/tools/stat/example.par
+
+*/

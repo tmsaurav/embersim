@@ -1,0 +1,65 @@
+#
+# nek parameter file
+#
+[GENERAL] 
+startFrom = baseflow.restart
+stopAt = numSteps
+numSteps = 100
+
+userparam01 = 1.0e-08 # initial noise amplitude
+
+dt = 1.000000E-02
+timeStepper = bdf2
+variableDt = no
+targetCFL = 1.00000
+
+writeControl = timeStep #runTime
+writeInterval = 50.0
+
+dealiasing = yes
+filtering = explicit
+filterWeight = 0.100000E-01
+filterCutoffRatio = 0.84
+
+[PROBLEMTYPE]
+equation = incomplinns
+solveBaseflow = no
+numberOfPerturbations = 1
+
+[MESH]
+writeToFieldFile = yes
+
+[PRESSURE]
+preconditioner = semg_xxt
+residualTol = 0.100000E-08
+residualProj = no
+writeToFieldFile = yes
+
+[VELOCITY]
+residualTol = 0.100000E-08
+residualProj = no
+density = 1.0
+viscosity = -100
+advection = yes
+writeToFieldFile = yes
+
+#
+[_RPRM]               # Runtime parameter section for rprm module
+PARFWRITE            = no                     # Do we write runtime parameter file
+PARFNAME             = outparfile             # Runtime parameter file name for output (without .par)
+#
+[_MNTR]              # Runtime parameter section for monitor module
+LOGLEVEL             = 4                      # Logging threshold for toolboxes
+WALLTIME             = 02:05                  # Simulation wall time
+#
+[_CHKPT]             # Runtime paramere section for checkpoint module
+READCHKPT            = no                     # Restat from checkpoint
+CHKPFNUMBER          = 2                      # Restart file number
+CHKPINTERVAL         = 25                     # Checkpiont saving frequency (number of time steps)
+
+[_SPNB]
+strength = 1.0
+widthlx = 4.0
+widthrx = 12.0
+droplx = 3.0
+droprx = 8.0

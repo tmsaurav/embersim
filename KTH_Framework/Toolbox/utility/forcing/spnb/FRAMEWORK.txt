@@ -1,0 +1,142 @@
+#Configuration file for Nek5000 framework developed at KTH
+# Place for short description; doxygen style
+/**
+@defgroup spnb  Sponge box
+@ingroup forcing
+
+@brief Sponge/fringe for simple box mesh
+
+@details
+Set of routines to apply sponge (fringe in periodic domains) for simple box mesh. It calculates a volume forcing
+\f[ \vec F = \lambda(x) \left( \vec U - \vec u\right),\f]
+with \f$ \lambda(x) \f$ being non-negative sponge/fringe function, \f$ \vec U\f$ and \f$ \vec u\f$ being constant in time
+reference velocity field and current velocity field respectively. 1-dimensional sponge function is defined as
+\f[ \lambda(x) = \lambda_{max} * \left[
+S\left((x_{min} - x) / \left(\Delta_{wl} - \Delta_{dl} \right)\right) +
+S\left((x - x_{max}) / \left(\Delta_{wr} - \Delta_{dr} \right)\right) \right],\f]
+where:
+- \f$ x \f$ - position along the coordinate \f$X\f$, \f$Y\f$ or \f$Z\f$,
+- \f$ \lambda_{max} \f$ - maximum sponge strength, see parameter  spnb_str in SPNBD,
+- \f$ \lambda \f$ - sponge strength, see array spnb_fun in SPNBD,
+- \f$ S(x) \f$ - step function @ref math_stepf,
+- \f$ x_{min}, x_{max} \f$ - left and right box boundaries,
+- \f$ \Delta_{wl}, \Delta_{wr} \f$ - left and right sponge section width,
+- \f$ \Delta_{dl}, \Delta_{dr} \f$ - left and right sponge section drop/rise width, where the strength gradually varies.
+
+In our implementation each dimension is treated separately and the final 3-dimensional function takes a 
+maximum value of its 1-dimensional components. \f$ \Delta_{wl}\f$ and \f$ \Delta_{wr} \f$ can be set to zero.
+
+@todo Add a figure to make parameter section clearer.
+
+@mod_interface
+@interface_list Interface provided:
+-# @ref spnb_register
+-# @ref spnb_init
+-# @ref spnb_forcing
+-# @ref spnb_is_initialised
+
+@par
+@interface_reqr Interface required:
+-# multiple interfaces from @ref rprm and @ref mntr modules
+-# @ref math_stepf from @ref math module
+
+@mod_interface_example
+@code{.f}
+      subroutine userf  (ix,iy,iz,ieg)
+      include 'SIZE'
+      include 'NEKUSE'          ! FF[XYZ]
+
+      FFX = 0.0
+      FFY = 0.0
+      FFZ = 0.0
+
+!     add sponge
+      call spnb_forcing(FFX,FFY,FFZ,ix,iy,iz,ieg)
+
+      return
+      end
+!-----------------------------------------------------------------------
+     subroutine userchk
+      implicit none
+      include 'SIZE'
+      include 'TSTEP'
+
+!     start framework
+      if (ISTEP.eq.0) call frame_start
+
+!     monitor simulation
+      call frame_monitor
+
+!     finalise framework
+      if (ISTEP.eq.NSTEPS.or.LASTEP.eq.1) then
+         call frame_end
+      endif
+
+      return
+      end
+!======================================================================
+!> @brief Register user specified modules
+      subroutine frame_usr_register
+      implicit none
+
+      include 'SIZE'
+      include 'FRAMELP'
+!-----------------------------------------------------------------------
+!     register modules
+      call spnb_register
+
+      return
+      end subroutine
+!======================================================================
+!> @brief Initialise user specified modules
+      subroutine frame_usr_init
+      implicit none
+
+      include 'SIZE'
+      include 'SOLN'
+      include 'FRAMELP'
+!-----------------------------------------------------------------------
+!     initialise modules
+!     initialise sponge box module with reference velocities
+!     (in this case initial condition)
+      call spnb_init(vx, vy, vz)
+
+      return
+      end subroutine
+!======================================================================
+!> @brief Finalise user specified modules
+      subroutine frame_usr_end
+      implicit none
+
+      include 'SIZE'
+      include 'FRAMELP'
+!-----------------------------------------------------------------------
+
+      return
+      end subroutine
+!======================================================================
+
+@endcode
+
+@mod_param
+@param_list Parameters provided by sponge box module (include file - @a SPNBD):
+|Varaible | Type | Runtime parameter | Default value | Description |
+|---------|------|-------------------|---------------|-------------|
+|spnb_str | real | _spnb:strenght | 0.0 | sponge strength |
+|spnb_wl(1) | real | _spnb:widthlx | 0.0 | sponge left section width; dimension X |
+|spnb_wl(2) | real | _spnb:widthly | 0.0 | sponge left section width; dimension Y |
+|spnb_wl(3) | real | _spnb:widthlz | 0.0 | sponge left section width; dimension Z |
+|spnb_wr(1) | real | _spnb:widthrx | 0.0 | sponge right section width; dimension X |
+|spnb_wr(2) | real | _spnb:widthry | 0.0 | sponge right section width; dimension Y |
+|spnb_wr(3) | real | _spnb:widthrz | 0.0 | sponge right section width; dimension Z |
+|spnb_dl(1) | real | _spnb:droplx | 0.0 | sponge left drop/rise section width; dimension X |
+|spnb_dl(2) | real | _spnb:droply | 0.0 | sponge left drop/rise section width; dimension Y |
+|spnb_dl(3) | real | _spnb:droplz | 0.0 | sponge left drop/rise section width; dimension Z |
+|spnb_dr(1) | real | _spnb:droprx | 0.0 | sponge right drop/rise section width; dimension X |
+|spnb_dr(2) | real | _spnb:dropry | 0.0 | sponge right drop/rise section width; dimension Y |
+|spnb_dr(3) | real | _spnb:droprz | 0.0 | sponge right drop/rise section width; dimension Z |
+
+@mod_param_example
+@include Toolbox/utility/forcing/spnb/example.par
+
+*/

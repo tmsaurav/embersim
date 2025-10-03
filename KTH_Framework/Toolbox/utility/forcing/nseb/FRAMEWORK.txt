@@ -1,0 +1,112 @@
+#Configuration file for Nek5000 framework developed at KTH
+# Place for short description; doxygen style
+/**
+@defgroup nseb  Noise box module
+@ingroup forcing
+
+@brief Add white noise to velocity field at given time in a box
+
+@details This set of routines adds a white noise in the rectangular box performing global face averaging at the end. 
+To keep the field independent on number of processors we use @ref math_ran_dst insted or @ref ran1 as
+a random number ganarator. At the end velocity field is smoothed at the element faces.
+
+@mod_interface
+@interface_list Interface provided:
+-# @ref nseb_register
+-# @ref nseb_init
+-# @ref nseb_noise_add
+
+@par
+@interface_reqr Interface required:
+-# multiple interfaces from @ref rprm and @ref mntr modules
+-# @ref math_ran_dst from @ref math module
+
+@mod_interface_example
+@code{.f}
+      subroutine userchk
+      include 'TSTEP'           ! ISTEP
+      
+!     start framework
+      if (ISTEP.eq.0) call frame_start
+
+!     monitor simulation
+      call frame_monitor
+
+!     add noise
+      call nseb_noise_add
+
+!     finalise framework
+      if (ISTEP.ge.NSTEPS.or.LASTEP.eq.1) then
+         call frame_end
+      endif
+
+      return
+      end
+!======================================================================
+!> @brief Register user specified modules
+      subroutine frame_usr_register
+      implicit none
+
+      include 'SIZE'
+      include 'FRAMELP'
+!-----------------------------------------------------------------------
+!     register modules
+      call nseb_register
+
+      return
+      end subroutine
+!======================================================================
+!> @brief Initialise user specified modules
+      subroutine frame_usr_init
+      implicit none
+
+      include 'SIZE'
+      include 'FRAMELP'
+!-----------------------------------------------------------------------
+!     initialise modules
+      call nseb_init
+
+      return
+      end subroutine
+!======================================================================
+!> @brief Finalise user specified modules
+      subroutine frame_usr_end
+      implicit none
+
+      include 'SIZE'
+      include 'FRAMELP'
+!-----------------------------------------------------------------------
+
+      
+      return
+      end subroutine
+!======================================================================
+@endcode
+
+@mod_param
+@param_list Parameters provided by nseb module (include file - @a NSEBD):
+|Varaible | Type | Runtime parameter | Default value | Description |
+|---------|------|-------------------|---------------|-------------|
+|nseb_tim | real | _nseb:time | 0.0 | time to add noise |
+|nseb_amp | real | _nseb:amplitude | 0.0 | noise amplitude |
+|nseb_bmin(1) | real | _nseb:boxminx | 0.0 | position of lower left box corner; dimension X |
+|nseb_bmin(2) | real | _nseb:boxminy | 0.0 | position of lower left box corner; dimension Y |
+|nseb_bmin(3) | real | _nseb:boxminz | 0.0 | position of lower left box corner; dimension Z |
+|nseb_bmax(1) | real | _nseb:boxmaxx | 0.0 | position of upper right box corner; dimension X |
+|nseb_bmax(2) | real | _nseb:boxmaxy | 0.0 | position of upper right box corner; dimension Z |
+|nseb_bmax(3) | real | _nseb:boxmaxz | 0.0 | position of upper right box corner; dimension Y |
+|nseb_rfc(1,1)| real | _nseb:frc1_1  | 3.0e4 | function coefficient for random number gnerator; cf. 1, vel. cmp. VX |
+|nseb_rfc(2,1)| real | _nseb:frc2_1  | 3.0e4 | function coefficient for random number gnerator; cf. 2, vel. cmp. VX |
+|nseb_rfc(3,1)| real | _nseb:frc3_1  | 3.0e4 | function coefficient for random number gnerator; cf. 3, vel. cmp. VX |
+|nseb_rfc(1,2)| real | _nseb:frc1_2  | 3.0e4 | function coefficient for random number gnerator; cf. 1, vel. cmp. VY |
+|nseb_rfc(2,2)| real | _nseb:frc2_2  | 3.0e4 | function coefficient for random number gnerator; cf. 2, vel. cmp. VY |
+|nseb_rfc(3,2)| real | _nseb:frc3_2  | 3.0e4 | function coefficient for random number gnerator; cf. 3, vel. cmp. VY |
+|nseb_rfc(1,3)| real | _nseb:frc1_3  | 3.0e4 | function coefficient for random number gnerator; cf. 1, vel. cmp. VZ |
+|nseb_rfc(2,3)| real | _nseb:frc2_3  | 3.0e4 | function coefficient for random number gnerator; cf. 2, vel. cmp. VZ |
+|nseb_rfc(3,3)| real | _nseb:frc3_3  | 3.0e4 | function coefficient for random number gnerator; cf. 3, vel. cmp. VZ |
+
+@mod_param_example
+@include Toolbox/utility/forcing/nseb/example.par
+
+
+*/

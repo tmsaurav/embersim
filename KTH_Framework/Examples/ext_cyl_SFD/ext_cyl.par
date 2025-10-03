@@ -1,0 +1,68 @@
+#
+# nek parameter file
+#
+[GENERAL] 
+#startFrom = restart.fld 
+stopAt = numSteps #endTime
+#endTime = 0.00000
+numSteps = 102.0
+
+dt = 1.000000E-02
+timeStepper = bdf3
+variableDt = no
+targetCFL = 1.00000
+
+writeControl = timeStep #runTime
+writeInterval = 20.0
+
+dealiasing = yes
+filtering = explicit
+filterWeight = 0.100000E-01
+filterCutoffRatio = 0.84
+
+userParam01 = 5 # use in .usr uparam(01)
+
+[PROBLEMTYPE]
+#stressFormulation = yes
+#lowMachNumber = yes 
+#dp0dt = yes
+#variableProperties = yes
+
+[MESH]
+writeToFieldFile = yes
+
+[PRESSURE]
+preconditioner = semg_xxt
+residualTol = 0.100000E-08
+residualProj = no
+writeToFieldFile = yes
+
+[VELOCITY]
+residualTol = 0.100000E-08
+residualProj = no
+density = 1.0
+viscosity = -100
+advection = yes
+writeToFieldFile = yes
+
+#
+[_RPRM]               # Runtime parameter section for rprm module
+PARFWRITE            = no                     # Do we write runtime parameter file
+PARFNAME             = outparfile             # Runtime parameter file name for output (without .par)
+#
+[_MNTR]              # Runtime parameter section for monitor module
+LOGLEVEL             = 4                      # Logging threshold for toolboxes
+WALLTIME             = 02:05                  # Simulation wall time
+#
+[_CHKPT]             # Runtime paramere section for checkpoint module
+READCHKPT            = no                     # Restat from checkpoint
+CHKPFNUMBER          = 2                      # Restart file number
+CHKPINTERVAL         = 25                     # Checkpiont saving frequency (number of time steps)
+#
+[_SFD]                  # Runtime paramere section for SFD module
+FILTERWDTH           = 0.40500000E+01         # SFD filter width
+CONTROLCFF           = 0.50000000E+00         # SFD control coefficient
+RESIDUALTOL          = 0.10000000E-06         # SFD tolerance for residual
+LOGINTERVAL          = 5                      # SFD frequency for logging convegence data
+SFDREADCHKPT         = no                     # SFD; restat from checkpoint
+

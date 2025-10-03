@@ -1,0 +1,17 @@
+#Configuration file for Nek5000 framework developed at KTH
+# Place for short description; doxygen style
+/**
+@defgroup comm   Comunication routines.
+@ingroup utility
+
+@brief MPI communication wrappers.
+
+@details
+Set of subroutines to wrap MPI communication missing in Nek5000.
+
+@mod_interface
+@interface_list Interface provided:
+-# @ref comm_ivglrsum
+-# @ref comm_ibcastn
+
+*/

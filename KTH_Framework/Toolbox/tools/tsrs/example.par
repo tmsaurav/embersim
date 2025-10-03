@@ -1,0 +1,4 @@
+[_TSRS]                 # Runtime paramere section for time series module
+TSTART               = 1.0                    # Sampling starting time
+TINT                 = 0.05                   # Samplind time interval
+SKSTEP               = 2                      # Skipped initial steps

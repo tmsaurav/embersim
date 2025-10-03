@@ -1,0 +1,7 @@
+/home/563/ts5772/KTH_Framework/Nek5000/tools/nekamg_setup/hypre/hypre/build/CMakeFiles/install/strip.dir
+/home/563/ts5772/KTH_Framework/Nek5000/tools/nekamg_setup/hypre/hypre/build/CMakeFiles/edit_cache.dir
+/home/563/ts5772/KTH_Framework/Nek5000/tools/nekamg_setup/hypre/hypre/build/CMakeFiles/rebuild_cache.dir
+/home/563/ts5772/KTH_Framework/Nek5000/tools/nekamg_setup/hypre/hypre/build/CMakeFiles/list_install_components.dir
+/home/563/ts5772/KTH_Framework/Nek5000/tools/nekamg_setup/hypre/hypre/build/CMakeFiles/HYPRE.dir
+/home/563/ts5772/KTH_Framework/Nek5000/tools/nekamg_setup/hypre/hypre/build/CMakeFiles/install/local.dir
+/home/563/ts5772/KTH_Framework/Nek5000/tools/nekamg_setup/hypre/hypre/build/CMakeFiles/install.dir

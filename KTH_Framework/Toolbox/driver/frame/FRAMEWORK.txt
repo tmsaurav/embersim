@@ -1,0 +1,74 @@
+#Configuration file for Nek5000 framework developed at KTH
+# Place for short description; doxygen style
+/**
+@defgroup frame  Frame module
+@ingroup driver
+
+@brief Backbone for toolboxes
+
+@details 
+The frame module provides backbone of the whole framework consisting of dynamical 
+(as much as fortran 77 allows for it) databases for registered modules, runtime
+parameters and timers. This is supposed to simplify interactions between different 
+modules, logging and operations on runtime parameters. It provides interfaces
+for intialisation, monitoring and finalisation of the framework. It requires as well
+three subroutines defined in @a setup.usr and providing modules registration 
+(@a frame_usr_register), initialisation (@a frame_usr_init) and finalisation 
+(@a frame_usr_end). There are three modules automatically started by framework:
+[monitor] (@ref mntr), [runtime parameters] (@ref rprm) and [I/O tools] (@ref io_tools).
+These modules should not be registered inside (@a frame_usr_register).
+
+This module also provides an include file FRAMELP defining log priorities and runtime parameter 
+types. Using logging routines from the [monitor] (@ref mntr) submodule, one can easily specify 
+the verbosity of the code. The logging level can be set in two ways: by LOGLEVEL runtime parameter 
+in [_MNTR] section of @a setup.par file (doeas not cover framework initialisation) 
+or by setting the enviromental variable FRAMELOGL. The second way covers all stages of the simulation.
+For the bash shell this variable can be set by:
+@code{.sh}
+FRAMELOGL = 5
+export FRAMELOGL
+@endcode
+
+@mod_interface
+@interface_list Interface provided:
+-# @ref frame_start
+-# @ref frame_monitor
+-# @ref frame_end
+-# @ref frame_get_master
+
+@par
+@interface_reqr Interface required:
+-# multiple interfaces from @ref rprm and @ref mntr modules (automatically registered)
+-# @ref io_file_close from @ref io_tools module (automatically registered)
+-# @a frame_usr_register; user defined
+-# @a frame_usr_init; user defined
+-# @a frame_usr_end; user defined
+
+@mod_interface_example
+@code{.f}
+!======================================================================
+      subroutine userchk
+      include 'TSTEP'
+      
+      if (ISTEP.eq.0) then
+!     start framework
+         call frame_start
+      endif
+
+!     monitor simulation
+      call frame_monitor
+
+!     place other modules calls
+
+!     finalise framework
+      if (ISTEP.eq.NSTEPS.or.LASTEP.eq.1) then
+         call frame_end
+      endif
+
+      return
+      end
+!======================================================================
+@endcode
+@include Toolbox/driver/frame/example.usr
+
+*/

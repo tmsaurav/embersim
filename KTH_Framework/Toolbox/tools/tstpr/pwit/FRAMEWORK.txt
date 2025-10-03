@@ -1,0 +1,45 @@
+#Configuration file for Nek5000 modules developped at KTH
+# Place for short description; doxygen style
+/**
+@defgroup pwit Power itertion routines
+@ingroup tstpr
+
+@brief Power iteration submodule
+
+
+
+@details Power iteration submodule. This module is most useful for optimal initial condition mode. In case of the
+direct and adjoint modes it is better to perform simple linear simulation with a long time horison.
+@todo Finish documentation
+
+@mod_interface
+@interface_list Interface provided to tstpr:
+-# @a stepper_register; provided for @ref tstpr
+-# @a stepper_init; provided for @ref tstpr
+-# @a stepper_vsolve; provided for @ref tstpr
+
+@par
+@interface_reqr Interface required:
+-# multiple interfaces from @ref rprm and @ref mntr modules
+-# @ref chkpt_get_fset from @ref chkpt module
+-# @ref chkptms_set_name, @ref chkptms_restart_read and @ref chkptms_restart_write from @ref chkptms module
+-# @ref cnht_opcmult, @ref cnht_opcopy, @ref cnht_opsub3 and @ref cnht_glsc2_wt from @ref cnht module
+
+@mod_param
+@param_list Parameters provided by pwit module (include file - @a PWITD):
+|Varaible | Type | Runtime parameter | Description |
+|---------|------|-------------------|-------------|
+| pwit_l2n | real | _pwit:l2n | initial L2 norm of the evolved vector for every cycle |
+
+@par
+@param_reqr Parameters required by power iteration module:
+-# @ref chkpt :
+   + _chkpt:readchkpt
+   + _chkpt:chkpFnumber
+-# Nek5000 @a PARAM array and logical flags:
+   + IFHEAT
+
+@mod_param_example
+@include Toolbox/tools/tstpr/pwit/example.par
+
+*/

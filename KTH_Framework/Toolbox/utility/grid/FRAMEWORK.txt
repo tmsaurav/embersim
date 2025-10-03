@@ -1,0 +1,14 @@
+#Configuration file for Nek5000 framework developed at KTH
+# Place for short description; doxygen style
+/**
+@defgroup grid  Grid module
+@ingroup utility
+
+@brief Diverse tools for manipulation of the grid
+
+@details 
+This directory contains number of different mesh related tools. It covers number of different simulation 
+aspects like 3D to 2D mesh mappinfg for meshes uniform in one direction.
+
+
+*/

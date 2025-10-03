@@ -1,0 +1,22 @@
+#Configuration file for Nek5000 framework developed at KTH
+# Place for short description; doxygen style
+/**
+@defgroup math  Math
+@ingroup utility
+
+@brief Diverse tools for matht or data operations
+
+@details Set of math related routines for toolbox
+
+@mod_interface
+@interface_list Interface provided:
+-# @ref math_stepf
+-# @ref math_ran_dst
+-# @ref math_ran_rng
+-# @ref math_zbqlu01
+-# @ref math_zbqlini
+-# @ref math_edgind
+-# @ref math_etovec
+-# @ref math_rot3da
+
+*/

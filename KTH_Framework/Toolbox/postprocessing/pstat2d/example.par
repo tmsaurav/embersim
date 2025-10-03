@@ -1,0 +1,6 @@
+[_PSTAT2D]                # Runtime paramere section for pstat module
+AMR_NREF             = 5                      # Nr. of initial refinemnt (AMR only)
+STS_FFILE            = 1                      # First stat file number
+STS_NFILE            = 1                      # Last stat file number
+STS_STIME            = 0.00000000E+00         # Statistics starting time
+STS_NSTEP            = 10                     # Number of steps between averaging (in sts files)

@@ -1,0 +1,12 @@
+#Configuration file for Nek5000 framework developed at KTH
+# Place for short description; doxygen style
+/**
+@defgroup tools  Tools module
+@ingroup toolbox
+
+@brief Set of tools for Nek5000 framework
+
+@details 
+This directory contains a number of various tools developed for Nek5000. 
+
+*/

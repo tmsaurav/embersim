@@ -1,0 +1,28 @@
+#Configuration file for Nek5000 framework developed at KTH
+# Place for short description; doxygen style
+/**
+@defgroup io_tools I/O tools
+@ingroup io
+
+@brief Input/Output simple tools
+
+@details
+Set of I/O speciffic routines for toolbox.
+
+This module is automatically registered by @ref frame and should not be registered 
+inside @a frame_usr_register.
+
+@mod_interface
+@interface_list Interface provided:
+-# @ref io_register (to @ref frame)
+-# @ref io_file_freeid
+-# @ref io_file_close
+-# @ref io_mfo_fname
+-# @ref io_mbyte_open
+-# @ref io_mbyte_close
+-# @ref io_mfov
+-# @ref io_mfos
+-# @ref io_mfiv
+-# @ref io_mfis
+
+*/

@@ -1,0 +1,76 @@
+#
+# nek parameter file
+#
+
+[GENERAL] 
+PnPnFormulation = yes
+minNumProcesses = 48
+
+startFrom = ./phill0.f00001 time=5580.0
+stopAt = endTime # numSteps
+#numSteps = 0
+endTime = 5760
+
+dt = 0.0025
+timeStepper = bdf2
+extrapolation = standard # OIFS
+variableDt = no
+targetCFL = 0.75
+
+writeControl = timeStep
+writeInterval = 400
+
+
+## CONTROL PARAMETERS
+#----------------------------------------------
+
+userParam01 = 200.0  # x-plane for recyclingBC
+userParam02 = 18.2   # scaling for recyclingBC
+
+userParam03 = 1      # solve for particles?
+userParam04 = 100    # particle output interval
+
+userParam05 = 1.2   # u_tau for initialisation
+
+#----------------------------------------------
+
+
+dealiasing = yes
+filtering = hpfrt
+filterWeight = 200.0
+filterModes = 2
+
+[PROBLEMTYPE]
+#variableProperties = yes
+equation = incompNS
+
+[PRESSURE]
+preconditioner = semg_xxt
+residualTol = 1e-4 
+residualProj = yes
+
+[VELOCITY]
+residualTol = 1e-6 
+density = 1.225
+viscosity = 1.8e-5
+
+#
+[_RPRM]               # Runtime parameter section for rprm module
+PARFWRITE            = no                     # Do we write runtime parameter file
+PARFNAME             = outparfile             # Runtime parameter file name for output (without .par)
+#
+[_MNTR]              # Runtime parameter section for monitor module
+LOGLEVEL             = 4                      # Logging threshold for toolboxes
+WALLTIME             = 48:00                  # Simulation wall time
+#
+[_CHKPT]             # Runtime paramere section for checkpoint module
+READCHKPT            = no                     # Restat from checkpoint
+CHKPFNUMBER          = 1                      # Restart file number
+CHKPINTERVAL         = 1000                   # Checkpiont saving frequency (number of time steps)
+#
+[_STAT]             # Runtime paramere section for statistics module
+AVSTEP               = 6000
+SKSTEP               = 9999999
+IOSTEP               = 6000
+
+

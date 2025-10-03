@@ -1,0 +1,158 @@
+!> @file GSYEMD
+!! @ingroup gsyem
+!! @brief Include file with parameter and common block definitions for
+!!  Generalised Synthetic Eddy Method
+!! @author Adam Peplinski
+!! @date Apr 07, 2020
+!=======================================================================
+!     module id and name
+      integer gsyem_id
+      character*(*) gsyem_name
+      parameter(gsyem_name='GSYEM')
+
+!     timer id
+      integer gsyem_ttot_id, gsyem_tini_id, gsyem_tevl_id
+      integer gsyem_tchp_id
+
+!     initialisation flag
+      logical gsyem_ifinit
+
+!     runtime parameter part
+!     section id
+      integer gsyem_sec_id    
+
+!     max number of:
+      integer gsyem_nfam_max     ! max number of bc families
+      parameter (gsyem_nfam_max=1) ! CASE SPECIFIC
+      integer gsyem_neddy_max    ! max number of eddies per family
+      parameter (gsyem_neddy_max=10000) ! CASE SPECIFIC
+      integer gsyem_npoint_max   ! point number per family profile (initialisation only)
+      parameter (gsyem_npoint_max=500) ! CASE SPECIFIC
+      integer gsyem_edge_max     ! max number of edges per family (initialisation only)
+      parameter (gsyem_edge_max=500) ! CASE SPECIFIC
+
+!     parameter section
+      integer gsyem_mode         !< @var GSYEM mode
+                                ! 1- DFSEMiso, 2- DFSEM, 3- Dairay et al.
+      integer gsyem_mode_id
+      integer gsyem_nfam                  !< @var number families
+      integer gsyem_nfam_id
+      integer gsyem_neddy(gsyem_nfam_max) !< @var number eddies
+      integer gsyem_neddy_id(gsyem_nfam_max)
+      integer gsyem_fambc(gsyem_nfam_max) !< @var boundary number
+      integer gsyem_fambc_id(gsyem_nfam_max)
+      real gsyem_sig_max(gsyem_nfam_max) !< @var max eddy size
+      integer gsyem_sig_max_id(gsyem_nfam_max)
+      real gsyem_sig_min(gsyem_nfam_max) !< @var min eddy size
+      integer gsyem_sig_min_id(gsyem_nfam_max)
+      real gsyem_dir(ldim,gsyem_nfam_max) !< @var wall normal direction
+      integer gsyem_dir_id(ldim,gsyem_nfam_max)
+
+!     restart flag and restart file set number
+      logical gsyem_chifrst
+      integer gsyem_fnum
+!     current number of snapshots in a single restart set (like chpm_nsnap)
+      integer gsyem_nsnap
+
+!     calculated family normal flag
+      logical gsyem_dirl(gsyem_nfam_max)
+
+!     family faces/edges mapping
+!     local number of faces in family
+      integer gsyem_lfnum(gsyem_nfam_max)
+!     global number of faces in family
+      integer gsyem_gfnum(gsyem_nfam_max)
+!     local family face map
+      integer gsyem_lfmap(2,lelt,gsyem_nfam_max)
+!     local number of edges in family
+      integer gsyem_lenum(gsyem_nfam_max)
+!     global number of edges in family
+      integer gsyem_genum(gsyem_nfam_max)
+!     local family edge map
+      integer gsyem_lemap(2,lelt,gsyem_nfam_max)
+!     face family array offset
+      integer gsyem_foff(gsyem_nfam_max+1)
+
+!     family average information
+!     bounding box size
+      real gsyem_bmin(ldim,gsyem_nfam_max)
+      real gsyem_bmax(ldim,gsyem_nfam_max)
+!     average coordinates
+      real gsyem_bcrd(ldim,gsyem_nfam_max)
+!     average surface normal direction
+      real gsyem_bnrm(ldim,gsyem_nfam_max)
+!     characteristic length for a family
+!     (min/max distance of the family centre from the edge)
+      real gsyem_cln_min(gsyem_nfam_max)
+      real gsyem_cln_max(gsyem_nfam_max)
+!     max point distance in the family
+      real gsyem_mdst(gsyem_nfam_max)
+!     box extent in normal direction
+      real gsyem_bext(gsyem_nfam_max)
+!     family area
+      real gsyem_area(gsyem_nfam_max)
+
+!     rotation axis
+      real gsyem_raxs(ldim,gsyem_nfam_max)
+!     rotation angle
+      real gsyem_rang(gsyem_nfam_max)
+
+
+!     variables defined by degrees of freedom in faces
+!     max vertex size
+      real gsyem_sigma(lx1,lz1,6*lelt)
+!     average velocoty
+      real gsyem_umean(lx1,lz1,6*lelt)
+!     intensity
+      real gsyem_intn(lx1,lz1,6*lelt)
+
+!     bulk velocity
+      real gsyem_ub(ldim,gsyem_nfam_max)
+!     bulk velocity projected on family normal direction
+      real gsyem_un(gsyem_nfam_max)
+      
+!     eddies family array offset
+      integer gsyem_eoff(gsyem_nfam_max+1)
+!     eddy position
+      real gsyem_epos(ldim,gsyem_neddy_max*gsyem_nfam_max)
+!     eddy amplitude
+      real gsyem_eamp(ldim,gsyem_neddy_max*gsyem_nfam_max)
+!     eddy phase
+      real gsyem_ephs(ldim,gsyem_neddy_max*gsyem_nfam_max)
+!     eddy orientation
+      integer gsyem_eps(ldim,gsyem_neddy_max*gsyem_nfam_max)
+
+      ! profiles for given family
+      ! number of points in profile per family
+      integer gsyem_pnpoint(gsyem_nfam_max)
+      ! family profile array offset
+      integer gsyem_ppoff(gsyem_nfam_max+1)
+      ! position in a profile
+      real gsyem_prpos(gsyem_npoint_max*gsyem_nfam_max)
+      ! mean velocity
+      real gsyem_pumean(gsyem_npoint_max*gsyem_nfam_max)
+      ! turbulence kinetic energy
+      real gsyem_ptke(gsyem_npoint_max*gsyem_nfam_max)
+      ! dissipation rate
+      real gsyem_pdss(gsyem_npoint_max*gsyem_nfam_max)
+
+!     common block section
+      common /gsyemi/ gsyem_id, gsyem_ttot_id, gsyem_tini_id, 
+     $     gsyem_tevl_id, gsyem_tchp_id, gsyem_sec_id, gsyem_mode, 
+     $     gsyem_mode_id, gsyem_nfam, gsyem_nfam_id, gsyem_neddy, 
+     $     gsyem_neddy_id, gsyem_fambc, gsyem_fambc_id, 
+     $     gsyem_sig_max_id, gsyem_sig_min_id, gsyem_dir_id, 
+     $     gsyem_fnum, gsyem_nsnap, gsyem_lfnum, gsyem_gfnum, 
+     $     gsyem_lfmap, gsyem_lenum, gsyem_genum, gsyem_lemap,
+     $     gsyem_foff, gsyem_eoff, gsyem_eps, gsyem_pnpoint,
+     $     gsyem_ppoff
+
+      common /gsyemr/  gsyem_sig_max, gsyem_sig_min, gsyem_dir,
+     $     gsyem_bmin, gsyem_bmax, gsyem_bcrd, gsyem_bnrm, 
+     $     gsyem_cln_min, gsyem_cln_max, gsyem_mdst, gsyem_bext, 
+     $     gsyem_area, gsyem_raxs, gsyem_rang,
+     $     gsyem_sigma, gsyem_umean, gsyem_intn, gsyem_ub, gsyem_un,
+     $     gsyem_epos, gsyem_eamp, gsyem_ephs, gsyem_prpos,
+     $     gsyem_pumean, gsyem_ptke, gsyem_pdss
+
+      common /gsyeml/ gsyem_ifinit, gsyem_chifrst, gsyem_dirl
