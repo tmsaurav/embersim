@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the thesis below, and Nek5000, ppiclF and the KTH Toolbox (see THIRD_PARTY.md)."
+title: "embersim: an LES-Lagrangian particle framework for ember storm simulation"
+authors:
+  - family-names: Saurav
+    given-names: Tanvir Mahmud
+license: MIT
+repository-code: "https://github.com/tmsaurav/embersim"
+keywords:
+  - large-eddy simulation
+  - Lagrangian particle tracking
+  - ember storms
+  - wildland-urban interface
+  - Nek5000
+preferred-citation:
+  type: thesis
+  authors:
+    - family-names: Saurav
+      given-names: Tanvir Mahmud
+  title: "A Generalisable LES-Lagrangian Particle Framework for Ember Storm Simulation at the Wildland-Urban Interface"
+  year: 2025
+  degree: "PhD"
+  institution:
+    name: "UNSW Canberra at ADFA"
+  doi: "10.26190/unsworks/31916"
+
+
