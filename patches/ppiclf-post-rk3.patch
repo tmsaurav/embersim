@@ -1,0 +1,12 @@
+diff --git a/source/ppiclf_solve.f b/source/ppiclf_solve.f
+index 715a021..a92ce7d 100644
+--- a/source/ppiclf_solve.f
++++ b/source/ppiclf_solve.f
+@@ -1040,6 +1040,7 @@ c----------------------------------------------------------------------
+          enddo
+       enddo
+ 
++      call ppiclf_user_PostRK3
+       iout = .true.
+ 
+       return

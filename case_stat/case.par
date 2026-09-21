@@ -1,0 +1,60 @@
+#
+# nek parameter file
+#
+[GENERAL] 
+PnPnFormulation = yes
+minNumProcesses = 48
+
+#startFrom = ./phill0.f00180 time=5580.0
+stopAt = numSteps
+numSteps = 0 #720000 
+#endTime = 5760
+
+dt = 0.0025
+timeStepper = bdf2
+extrapolation = standard # OIFS
+variableDt = no
+targetCFL = 0.75
+
+writeControl = timeStep
+writeInterval = 10000
+
+
+## CONTROL PARAMETERS
+#----------------------------------------------
+
+userParam01 = 200.0  # x-plane for recyclingBC
+userParam02 = 18.2   # scaling for recyclingBC
+
+userParam03 = 0      # solve for particles?
+userParam04 = 100    # particle output interval
+
+userParam05 = 1.2   # u_tau for initialisation
+
+#----------------------------------------------
+
+
+dealiasing = yes
+filtering = hpfrt
+filterWeight = 200.0
+filterModes = 2
+
+[PROBLEMTYPE]
+#variableProperties = yes
+equation = incompNS
+
+[PRESSURE]
+preconditioner = semg_xxt
+residualTol = 1e-4 
+residualProj = yes
+
+[VELOCITY]
+residualTol = 1e-6 
+density = 1.225
+viscosity = 1.8e-5
+
+[_PSTAT3D]                # Runtime paramere section for pstat module
+STS_NFILE            = 120                    # Number of collected s01-s11 files
+STS_STIME            = 3600.0         # Statistics starting time
+STS_NSTEP            = 6000                     # Number of steps between averaging in collected s01-s11 files 
+

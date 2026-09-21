@@ -1,0 +1,9 @@
+ppiclf_build/
+*.o
+*.a
+*.mod
+*.log*
+*.vtu
+*.f0*
+.ipynb_checkpoints/
+__pycache__/

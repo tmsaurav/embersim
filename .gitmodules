@@ -1,0 +1,10 @@
+[submodule "external/Nek5000"]
+	path = external/Nek5000
+	url = https://github.com/Nek5000/nek5000.git
+	ignore = dirty
+[submodule "external/KTH_Toolbox"]
+	path = external/KTH_Toolbox
+	url = https://github.com/adampep/KTH_Toolbox.git
+[submodule "external/ppiclF"]
+	path = external/ppiclF
+	url = https://github.com/dpzwick/ppiclF.git
