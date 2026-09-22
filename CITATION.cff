@@ -23,5 +23,16 @@ preferred-citation:
   institution:
     name: "UNSW Canberra at ADFA"
   doi: "10.26190/unsworks/31916"
-
+references:
+  - type: software
+    title: "embersim (thesis-era snapshot, tag thesis-2025)"
+    authors:
+      - family-names: Saurav
+        given-names: Tanvir Mahmud
+    doi: "10.5281/zenodo.22885431"
+    notes: >
+      Archived snapshot of the repository as it stood for the PhD thesis
+      simulations, before the software was restructured. Cite this DOI when
+      referring specifically to the thesis-era code; cite the software
+      release below for the maintained version.
 

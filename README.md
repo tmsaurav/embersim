@@ -14,9 +14,11 @@ experimental data (see "Particle models").
 
 ```
 embersim/
-  case/          Case template: LES + particles, statistics (KTH stat module)
+  case/          Case template: LES + particles; collects raw time-averaged
+                 statistics during the run (KTH statistics module)
     ppiclf/      Particle setup: PPICLF_USER.h, ppiclf_user.f (forces, collision)
-  case_stat/     Case template for processing raw statistics files (3-D)
+  case_stat/     Template for post-processing the raw statistics files (pstat3D)
+                 into time-averaged fields, optionally on a structured grid
   presim/
     meshing/     Gmsh scripts: UniformBox.py, SimpleCubes.py, RefinedCubes.py
   postsim/
@@ -100,7 +102,8 @@ ground.
 
 The thesis describes an earlier layout in which Nek5000, ppiclF and the KTH Toolbox
 were copied into the repository. This version replaces those copies with pinned
-dependencies. The thesis-era state is preserved under the git tag `legacy-import`.
+dependencies. The thesis-era state is preserved under the git tag `thesis-2025`
+(archived on Zenodo: https://doi.org/10.5281/zenodo.22885431).
 
 | Thesis path | This repository |
 |---|---|
@@ -129,14 +132,18 @@ citations. If you use embersim, please also cite Nek5000, ppiclF and the KTH Too
 
 ## Citation
 
-See `CITATION.cff`. Until a software release DOI is available, cite the thesis:
+See `CITATION.cff`. Until a software release DOI is available for the maintained
+version (v1.0.0 onwards), cite the thesis:
 
 Saurav, T. M. (2025). *A Generalisable LES-Lagrangian Particle Framework for Ember
 Storm Simulation at the Wildland-Urban Interface*. PhD thesis, UNSW Canberra.
 https://doi.org/10.26190/unsworks/31916
 
+The thesis-era snapshot of this repository (tag `thesis-2025`) is separately
+archived and citable via Zenodo: https://doi.org/10.5281/zenodo.22885431
+
 *Acknowledgement: The framework, models and simulations in this repository are the
 author's original work, developed during his PhD. Claude (Anthropic) was used only
-recently (22/09/2026), under the author's direction, to help restructure the repository into a
+recently (Sep 2026), under the author's direction, to help restructure the repository into a
 cleaner software package and to draft its documentation. The author reviewed and
 takes responsibility for the result.*
