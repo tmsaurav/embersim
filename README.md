@@ -132,8 +132,11 @@ citations. If you use embersim, please also cite Nek5000, ppiclF and the KTH Too
 
 ## Citation
 
-See `CITATION.cff`. Until a software release DOI is available for the maintained
-version (v1.0.0 onwards), cite the thesis:
+See `CITATION.cff`. Cite the maintained software release for this version:
+
+embersim v1.0.0. https://doi.org/10.5281/zenodo.22885515
+
+and the thesis for the original framework and thesis-era simulations:
 
 Saurav, T. M. (2025). *A Generalisable LES-Lagrangian Particle Framework for Ember
 Storm Simulation at the Wildland-Urban Interface*. PhD thesis, UNSW Canberra.

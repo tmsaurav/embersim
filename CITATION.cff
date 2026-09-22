@@ -23,6 +23,9 @@ preferred-citation:
   institution:
     name: "UNSW Canberra at ADFA"
   doi: "10.26190/unsworks/31916"
+version: 1.0.0
+date-released: 2026-09-22
+doi: "10.5281/zenodo.22885515"
 references:
   - type: software
     title: "embersim (thesis-era snapshot, tag thesis-2025)"
