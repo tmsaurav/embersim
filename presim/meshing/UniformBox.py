@@ -1,7 +1,12 @@
 """
-Created on Mon Apr 22 10:12:46 2024
 
-@author: z5379427
+THIS CODE CREATES A UNIFORM RECTANGULAR DOMAIN.
+
+TANVIR M. SAURAV
+
+BUSHFIRE RESEARCH GROUP
+UNSW CANBERRA
+
 """
 
 # Initialization parameters: Don't Touch!

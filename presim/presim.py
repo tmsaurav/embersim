@@ -1,8 +1,12 @@
-# -*- coding: utf-8 -*-
 """
-Created on Mon Mar 18 16:21:35 2024
 
-@author: z5379427
+THIS CODE CALCULATES INITIALISATION PARAMETERS.
+
+TANVIR M. SAURAV
+
+BUSHFIRE RESEARCH GROUP
+UNSW CANBERRA
+
 """
 
 import numpy as np
